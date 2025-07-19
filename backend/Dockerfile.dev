@@ -1,0 +1,29 @@
+FROM node:18-alpine
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Install nodemon and ts-node globally so the `npm run dev` command works
+RUN npm install -g nodemon ts-node
+
+# Copy package manifests from the root context
+COPY shared/package*.json ./shared/
+COPY backend/package*.json ./backend/
+
+# Install dependencies for the shared package first
+WORKDIR /app/shared
+RUN npm install
+
+# Install dependencies for the backend package
+WORKDIR /app/backend
+RUN npm install
+
+# Copy the rest of the source code into the container
+WORKDIR /app
+COPY . .
+
+# Set the final working directory for the command to run
+WORKDIR /app/backend
+
+EXPOSE 3000
+CMD ["npm", "run", "dev"]

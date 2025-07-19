@@ -1,0 +1,69 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+.svn
+.hg
+
+# Secrets & Environment files
+.env
+.env.*
+secrets/
+*.pem
+*.key
+credentials.json
+
+# Dependency directories
+node_modules/
+bower_components/
+vendor/
+jspm_packages/
+
+# Build artifacts, logs, temp files
+build/
+dist/
+target/
+bin/
+obj/
+npm-debug.log
+yarn-error.log
+*.log
+logs/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Docker files (never copy these in)
+Dockerfile
+docker-compose.yml
+docker-compose.*.yml
+.dockerignore
+
+# Editor/IDE settings
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.sublime-*
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Documentation (optional, good for size)
+README.md
+CONTRIBUTING.md
+docs/
+*.md
+
+# Project/infra/CI files
+Jenkinsfile
+Makefile
+scripts/
+infrastructure/
+config/
+
+# Ignore other apps/services in monorepo (when building only one)
+

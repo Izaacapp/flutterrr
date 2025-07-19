@@ -1,0 +1,21 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY shared/package*.json ./shared/
+COPY frontend/package*.json ./frontend/
+
+WORKDIR /app/shared
+RUN npm install
+
+WORKDIR /app/frontend
+RUN npm install
+
+# Copy source
+WORKDIR /app
+COPY . .
+
+WORKDIR /app/frontend
+EXPOSE 3001
+CMD ["npm", "run", "dev"]

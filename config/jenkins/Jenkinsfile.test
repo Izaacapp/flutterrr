@@ -1,0 +1,236 @@
+pipeline {
+    agent none
+    environment {
+        REGISTRY_URL = 'docker.io/timesnotrelative'
+        DROPLET_IP   = '138.197.72.196'
+        DROPLET_USER = 'root'
+    }
+    stages {
+        stage('Checkout') {
+            agent any
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Test Suite') {
+            parallel {
+                stage('API Tests') {
+                    agent {
+                        docker {
+                            image 'node:18-alpine'
+                            args '-v $HOME/.npm:/root/.npm'
+                        }
+                    }
+                    steps {
+                        echo 'Running API tests...'
+                        dir('api') {
+                            sh 'npm ci'
+                            sh 'npm run test -- --ci --coverage --maxWorkers=2'
+                            sh 'npm run lint'
+                            sh 'npm run typecheck'
+                        }
+                    }
+                    post {
+                        always {
+                            publishHTML([
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: 'api/coverage/lcov-report',
+                                reportFiles: 'index.html',
+                                reportName: 'API Test Coverage'
+                            ])
+                        }
+                    }
+                }
+                
+                stage('Web Tests') {
+                    agent {
+                        docker {
+                            image 'node:18-alpine'
+                            args '-v $HOME/.npm:/root/.npm'
+                        }
+                    }
+                    steps {
+                        echo 'Running Web tests...'
+                        dir('web') {
+                            sh 'npm ci'
+                            sh 'npm run test -- --run --coverage'
+                            sh 'npm run lint'
+                        }
+                    }
+                    post {
+                        always {
+                            publishHTML([
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: 'web/coverage',
+                                reportFiles: 'index.html',
+                                reportName: 'Web Test Coverage'
+                            ])
+                        }
+                    }
+                }
+                
+                stage('Mobile Tests') {
+                    agent {
+                        docker {
+                            image 'ghcr.io/cirruslabs/flutter:stable'
+                        }
+                    }
+                    steps {
+                        echo 'Running Flutter tests...'
+                        dir('mobile') {
+                            sh 'flutter pub get'
+                            sh 'flutter analyze'
+                            sh 'flutter test --coverage'
+                        }
+                    }
+                    post {
+                        always {
+                            publishHTML([
+                                allowMissing: false,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: 'mobile/coverage/html',
+                                reportFiles: 'index.html',
+                                reportName: 'Flutter Test Coverage'
+                            ])
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Build & Push Production Images') {
+            agent any
+            when {
+                allOf {
+                    branch 'main'
+                    expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+                }
+            }
+            environment {
+                DOCKER_CREDS = credentials('docker-creds')
+            }
+            steps {
+                script {
+                    def registry = env.REGISTRY_URL
+                    def buildNum = env.BUILD_NUMBER
+                    
+                    sh "echo \$DOCKER_CREDS_PSW | docker login -u \$DOCKER_CREDS_USR --password-stdin"
+                    
+                    echo "Building API image..."
+                    sh """
+                        docker build -f api/Dockerfile.prod \
+                            --build-arg NODE_ENV=production \
+                            --build-arg API_VERSION=${buildNum} \
+                            -t ${registry}/api-app:${buildNum} \
+                            -t ${registry}/api-app:latest .
+                    """
+                    
+                    echo "Building Web image..."
+                    sh """
+                        docker build -f web/Dockerfile.prod \
+                            --build-arg VITE_API_URL=http://${DROPLET_IP}:3000 \
+                            --build-arg VITE_GRAPHQL_URL=http://${DROPLET_IP}:3000/graphql \
+                            -t ${registry}/web-app:${buildNum} \
+                            -t ${registry}/web-app:latest .
+                    """
+                    
+                    echo "Pushing images to registry..."
+                    sh """
+                        docker push ${registry}/api-app:${buildNum}
+                        docker push ${registry}/api-app:latest
+                        docker push ${registry}/web-app:${buildNum}
+                        docker push ${registry}/web-app:latest
+                    """
+                }
+            }
+        }
+        
+        stage('Deploy to Production') {
+            agent any
+            when {
+                allOf {
+                    branch 'main'
+                    expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+                }
+            }
+            environment {
+                SSH_CREDS = credentials('droplet-ssh-new')
+            }
+            steps {
+                script {
+                    def registry = env.REGISTRY_URL
+                    def buildNum = env.BUILD_NUMBER
+                    
+                    echo "Deploying to DigitalOcean droplet..."
+                    
+                    sh """
+                        ssh -o StrictHostKeyChecking=no -i \$SSH_CREDS ${DROPLET_USER}@${DROPLET_IP} '
+                            cd /root/app &&
+                            docker pull ${registry}/api-app:${buildNum} &&
+                            docker pull ${registry}/web-app:${buildNum} &&
+                            export API_IMAGE=${registry}/api-app:${buildNum} &&
+                            export WEB_IMAGE=${registry}/web-app:${buildNum} &&
+                            docker-compose down &&
+                            docker-compose up -d &&
+                            docker system prune -f
+                        '
+                    """
+                }
+            }
+        }
+        
+        stage('Verify Deployment') {
+            agent any
+            when {
+                allOf {
+                    branch 'main'
+                    expression { currentBuild.result == null || currentBuild.result == 'SUCCESS' }
+                }
+            }
+            steps {
+                echo "Verifying deployment..."
+                sh "sleep 30"
+                
+                script {
+                    def apiHealthCheck = sh(
+                        script: "curl -f http://${DROPLET_IP}:3000/health || exit 1",
+                        returnStatus: true
+                    )
+                    
+                    def webHealthCheck = sh(
+                        script: "curl -f http://${DROPLET_IP}:3001 || exit 1",
+                        returnStatus: true
+                    )
+                    
+                    if (apiHealthCheck == 0 && webHealthCheck == 0) {
+                        echo "✅ Deployment verified successfully!"
+                    } else {
+                        error "❌ Deployment verification failed!"
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            node('any') {
+                echo "Cleaning up workspace..."
+                deleteDir()
+            }
+        }
+        success {
+            echo '✅ Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed!'
+            // Add notifications here (Slack, email, etc.)
+        }
+    }
+}

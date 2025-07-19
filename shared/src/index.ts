@@ -1,0 +1,1 @@
+export * from './validation/post.schemas'; // Exports both schemas AND types

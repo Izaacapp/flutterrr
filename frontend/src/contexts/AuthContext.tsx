@@ -1,0 +1,101 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import authService, { User, AuthResponse, OTPResponse } from '../services/auth.service';
+
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<AuthResponse>;
+  signup: (username: string, email: string, password: string, fullName: string) => Promise<AuthResponse>;
+  verifyAccount: (otp: string) => Promise<AuthResponse>;
+  resendOTP: () => Promise<OTPResponse>;
+  logout: () => Promise<void>;
+  isAuthenticated: boolean;
+  needsVerification: boolean;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(authService.getUser());
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Verify token on mount
+    const verifyAuth = async () => {
+      if (authService.isAuthenticated()) {
+        const response = await authService.verify();
+        if (response.success && response.user) {
+          setUser(response.user);
+        } else {
+          setUser(null);
+        }
+      }
+      setLoading(false);
+    };
+
+    verifyAuth();
+  }, []);
+
+  const login = async (emailOrUsername: string, password: string): Promise<AuthResponse> => {
+    const response = await authService.login(emailOrUsername, password);
+    if (response.status === 'success' && response.data?.user) {
+      setUser(response.data.user);
+    }
+    return response;
+  };
+
+  const signup = async (
+    username: string,
+    email: string,
+    password: string,
+    fullName: string
+  ): Promise<AuthResponse> => {
+    const response = await authService.signup(username, email, password, fullName);
+    if (response.status === 'success' && response.data?.user) {
+      setUser(response.data.user);
+    }
+    return response;
+  };
+
+  const verifyAccount = async (otp: string): Promise<AuthResponse> => {
+    const response = await authService.verifyAccount(otp);
+    if (response.status === 'success' && response.data?.user) {
+      setUser(response.data.user);
+    }
+    return response;
+  };
+
+  const resendOTP = async (): Promise<OTPResponse> => {
+    return await authService.resendOTP();
+  };
+
+  const logout = async () => {
+    await authService.logout();
+    setUser(null);
+  };
+
+  const needsVerificationValue = user ? !user.emailVerified : false;
+  console.log('AuthContext - user:', user, 'needsVerification:', needsVerificationValue);
+  
+  const value: AuthContextType = {
+    user,
+    loading,
+    login,
+    signup,
+    verifyAccount,
+    resendOTP,
+    logout,
+    isAuthenticated: !!user && !!authService.getToken(),
+    needsVerification: needsVerificationValue,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
