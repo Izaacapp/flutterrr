@@ -23,7 +23,7 @@ COPY . .
 
 # Build the backend
 WORKDIR /app/backend
-RUN npm run build
+RUN npm run build:prod
 
 # Production stage
 FROM node:18-alpine
@@ -41,6 +41,10 @@ COPY --from=builder /app/shared /app/shared
 RUN mkdir -p /app/node_modules/@my-app && \
     rm -f /app/node_modules/@my-app/shared && \
     ln -s /app/shared /app/node_modules/@my-app/shared
+
+# Create uploads directory with proper permissions
+RUN mkdir -p /app/uploads && \
+    chown -R node:node /app/uploads
 
 USER node
 EXPOSE 3000

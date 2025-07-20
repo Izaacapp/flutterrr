@@ -579,12 +579,12 @@ prod-backup: ## Backup production database
 .PHONY: build-prod
 build-prod: ## Build production Docker images locally
 	@echo "🏗️  Building production images..."
-	@docker build -f backend/Dockerfile.prod -t timesnotrelative/passport-buddy-backend:latest ./backend
+	@docker build -f backend/Dockerfile.prod -t timesnotrelative/passport-buddy-backend:latest .
 	@docker build -f frontend/Dockerfile.prod \
 		--build-arg VITE_API_URL=https://www.xbullet.me \
 		--build-arg VITE_GRAPHQL_URL=https://www.xbullet.me/graphql \
 		--build-arg VITE_WS_URL=wss://www.xbullet.me/graphql \
-		-t timesnotrelative/passport-buddy-frontend:latest ./frontend
+		-t timesnotrelative/passport-buddy-frontend:latest .
 	@echo "✅ Production images built"
 
 .PHONY: push-prod

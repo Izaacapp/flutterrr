@@ -1,4 +1,4 @@
-import { emailService } from '../src/services/email.service';
+import { emailService } from '../services/email.service';
 
 export const sendVerificationEmail = async (email: string, otp: string, name: string) => {
   const subject = 'Verify Your Email - Passport Buddy';

@@ -4,7 +4,7 @@ import User, { IUser } from '../models/User';
 import AppError from '../utils/appError';
 import catchAsync from '../utils/catchAsync';
 import generateOtp from '../utils/generateOtp';
-import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetOTP, sendPasswordResetSuccessEmail } from '../../mailtrap/emails';
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetOTP, sendPasswordResetSuccessEmail } from '../mailtrap/emails';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
