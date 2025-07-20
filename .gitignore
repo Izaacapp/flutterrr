@@ -18,6 +18,9 @@ Thumbs.db
 *.ipr
 .project
 .classpath
+
+# Claude AI
+.claude/
 .c9/
 *.launch
 .settings/
