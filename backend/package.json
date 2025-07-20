@@ -14,6 +14,7 @@
     "test:unit": "jest --testPathIgnorePatterns=integration",
     "lint": "eslint . --ext .ts",
     "seed": "ts-node src/scripts/seed.ts",
+    "seed:edge": "ts-node src/scripts/seed-social-edge-cases.ts",
     "typecheck": "tsc --noEmit",
     "migrate:urls": "ts-node src/scripts/migrate-image-urls.ts"
   },

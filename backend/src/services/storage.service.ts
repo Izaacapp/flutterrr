@@ -61,7 +61,11 @@ class LocalStorageService extends StorageService {
   constructor() {
     super();
     this.uploadDir = path.resolve(env.UPLOAD_DIR);
+    // Ensure HTTPS in production
     this.baseUrl = env.UPLOAD_URL;
+    if (process.env.NODE_ENV === 'production' && this.baseUrl.startsWith('http://')) {
+      this.baseUrl = this.baseUrl.replace('http://', 'https://');
+    }
     this.ensureUploadDir();
   }
 
@@ -288,6 +292,7 @@ class DigitalOceanSpacesService extends StorageService {
   getUrl(key: string): string {
     // Use CDN URL for better performance
     const region = env.DO_SPACES_REGION || 'nyc3';
+    // Always use HTTPS for CDN URLs
     return `https://${this.bucket}.${region}.cdn.digitaloceanspaces.com/${key}`;
   }
 }
