@@ -51,7 +51,7 @@ cd web && npm test -- --run
 cd mobile && flutter test
 ```
 
-## Test Configuration
+### Test Configuration
 
 ### API (Jest)
 - Config: `/api/jest.config.js`
