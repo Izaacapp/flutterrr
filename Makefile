@@ -181,6 +181,11 @@ seed: ## Seed database with test users and sample data
 	@echo "📦 Creating 8 test users with travel data..."
 	@docker-compose --env-file .env.dev exec backend npm run seed
 
+.PHONY: seed-edge
+seed-edge: ## Seed database with edge case test data
+	@echo "🧪 Seeding edge case test data..."
+	@docker-compose --env-file .env.dev exec backend npm run seed:edge
+
 .PHONY: seed-local
 seed-local: ## Seed database from local machine (requires local MongoDB)
 	@echo "🌱 Seeding database locally..."
@@ -197,6 +202,52 @@ seed-fresh: db-reset seed ## Drop database and seed with fresh data
 db-reset: ## Reset database (drop all collections)
 	@echo "🗑️  Resetting database..."
 	@docker-compose --env-file .env.dev exec mongodb mongosh -u root -p pass --authenticationDatabase admin --eval "use devdb" --eval "db.dropDatabase()"
+
+# CI/CD Commands
+.PHONY: build-prod
+build-prod: ## Build production Docker images locally
+	@echo "🏗️  Building production images..."
+	docker build -f backend/Dockerfile.prod -t timesnotrelative/passport-buddy-backend:latest .
+	docker build -f frontend/Dockerfile.prod -t timesnotrelative/passport-buddy-frontend:latest .
+
+.PHONY: push-prod
+push-prod: ## Push images to Docker Hub (requires login)
+	@echo "📤 Pushing to Docker Hub..."
+	docker push timesnotrelative/passport-buddy-backend:latest
+	docker push timesnotrelative/passport-buddy-frontend:latest
+
+.PHONY: docker-login
+docker-login: ## Login to Docker Hub
+	@echo "🔐 Login to Docker Hub..."
+	@docker login -u iz596192@ucf.edu
+
+.PHONY: deploy-prod
+deploy-prod: ## Deploy to production (manual)
+	@echo "🚀 Deploying to production..."
+	@echo "This will SSH to production and deploy the latest images."
+	@echo "Continue? [y/N]"
+	@read confirm; \
+	if [ "$$confirm" = "y" ]; then \
+		ssh root@138.197.72.196 'cd /app && git pull origin main && docker-compose -f docker-compose.prod.yml --env-file config/.env.prod pull && docker-compose -f docker-compose.prod.yml --env-file config/.env.prod down && docker-compose -f docker-compose.prod.yml --env-file config/.env.prod up -d'; \
+	fi
+
+.PHONY: prod-logs
+prod-logs: ## View production logs
+	@echo "📋 Viewing production logs..."
+	ssh root@138.197.72.196 'cd /app && docker-compose -f docker-compose.prod.yml logs --tail=100 -f'
+
+.PHONY: prod-status
+prod-status: ## Check production status
+	@echo "🔍 Checking production status..."
+	@echo "Testing API health..."
+	@curl -f https://www.xbullet.me/api/health || echo "❌ API is down"
+	@echo "\nTesting Frontend..."
+	@curl -f -s https://www.xbullet.me > /dev/null && echo "✅ Frontend is up" || echo "❌ Frontend is down"
+
+.PHONY: migrate-urls
+migrate-urls: ## Run URL migration script on production
+	@echo "🔄 Migrating image URLs on production..."
+	ssh root@138.197.72.196 'cd /app && docker exec -it app-api-1 npm run migrate:urls'
 	@echo "✅ Database reset complete!"
 
 # Mobile commands
