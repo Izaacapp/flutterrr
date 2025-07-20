@@ -133,7 +133,7 @@ CORS_ORIGIN=https://www.xbullet.me,https://xbullet.me
 # Email Service
 EMAIL_PROVIDER=resend
 RESEND_API_KEY=${RESEND_API_KEY}
-EMAIL_FROM=hello@send.xbullet.me
+EMAIL_FROM=hello@xbullet.me
 EMAIL_FROM_NAME=Passport Buddy
 
 # Storage
