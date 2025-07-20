@@ -13,7 +13,7 @@ export class EmailService {
   private from: string;
 
   private constructor() {
-    this.from = process.env.EMAIL_FROM || 'hello@send.xbullet.me';
+    this.from = process.env.EMAIL_FROM || 'hello@xbullet.me';
   }
 
   static getInstance(): EmailService {

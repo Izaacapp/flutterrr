@@ -46,7 +46,7 @@ class EmailService {
         const resend = new Resend(process.env.RESEND_API_KEY);
         
         const { data, error } = await resend.emails.send({
-          from: `Passport Buddy <${process.env.EMAIL_FROM || 'hello@send.xbullet.me'}>`,
+          from: `Passport Buddy <${process.env.EMAIL_FROM || 'hello@xbullet.me'}>`,
           to: options.to,
           subject: options.subject,
           text: options.text,
