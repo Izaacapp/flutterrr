@@ -34,7 +34,7 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - API_HOST=${API_HOST:-138.197.72.196}
-      - MONGO_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/${MONGO_DB_NAME:-proddb}?authSource=admin
+      - MONGO_URI=mongodb://mongodb:27017/passport_buddy_prod
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
@@ -46,12 +46,17 @@ services:
       - ENABLE_SIGNUP=${ENABLE_SIGNUP:-true}
       - ENABLE_EMAIL_VERIFICATION=${ENABLE_EMAIL_VERIFICATION:-true}
       - ENABLE_GRAPHQL_PLAYGROUND=${ENABLE_GRAPHQL_PLAYGROUND:-false}
-      - STORAGE_TYPE=${STORAGE_TYPE:-local}
       - UPLOAD_DIR=${UPLOAD_DIR:-./uploads}
       - UPLOAD_URL=${UPLOAD_URL:-https://www.xbullet.me/uploads}
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-5242880}
       - BCRYPT_ROUNDS=${BCRYPT_ROUNDS:-12}
       - SESSION_SECRET=${SESSION_SECRET}
+      - STORAGE_TYPE=${STORAGE_TYPE:-spaces}
+      - DO_SPACES_KEY=${DO_SPACES_KEY}
+      - DO_SPACES_SECRET=${DO_SPACES_SECRET}
+      - DO_SPACES_ENDPOINT=${DO_SPACES_ENDPOINT}
+      - DO_SPACES_BUCKET=${DO_SPACES_BUCKET}
+      - DO_SPACES_REGION=${DO_SPACES_REGION}
     volumes:
       - ./uploads:/app/uploads
     depends_on:
@@ -60,7 +65,7 @@ services:
     networks:
       - app_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
