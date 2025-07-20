@@ -294,7 +294,7 @@ async function seedSocialEdgeCases() {
       if (postData.generateLikes) {
         // Create fake user IDs for likes (simulating many users)
         const fakeUserIds = Array.from({ length: postData.generateLikes }, () => new mongoose.Types.ObjectId());
-        createdPost.likes = fakeUserIds;
+        createdPost.likes = fakeUserIds as any;
       }
       
       // Generate comments if specified
