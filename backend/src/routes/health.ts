@@ -42,7 +42,16 @@ router.get('/health', async (_req, res) => {
   }
 
   // Check email service
-  if (env.MAILTRAP_TOKEN && env.MAILTRAP_ENDPOINT) {
+  const emailProvider = process.env.EMAIL_PROVIDER || 'mailtrap';
+  
+  if (emailProvider === 'resend' && process.env.RESEND_API_KEY) {
+    checks.services.email = 'CONFIGURED';
+    checks.details.email = {
+      provider: 'Resend',
+      configured: true,
+      from: process.env.EMAIL_FROM || 'Not set'
+    };
+  } else if (env.MAILTRAP_TOKEN && env.MAILTRAP_ENDPOINT) {
     checks.services.email = 'CONFIGURED';
     checks.details.email = {
       provider: 'Mailtrap',
@@ -102,7 +111,7 @@ router.post('/test-email', async (req, res) => {
         details: {
           to,
           otp,
-          provider: env.MAILTRAP_TOKEN ? 'Mailtrap' : 'Development Mode',
+          provider: process.env.EMAIL_PROVIDER === 'resend' ? 'Resend' : (env.MAILTRAP_TOKEN ? 'Mailtrap' : 'Development Mode'),
           timestamp: new Date()
         }
       });
@@ -128,12 +137,15 @@ router.post('/test-email', async (req, res) => {
 
 // Email configuration check
 router.get('/email-config', (_req, res) => {
+  const emailProvider = process.env.EMAIL_PROVIDER || 'mailtrap';
+  
   const config = {
-    configured: !!(env.MAILTRAP_TOKEN && env.MAILTRAP_ENDPOINT),
-    provider: env.MAILTRAP_TOKEN ? 'Mailtrap' : 'None',
-    endpoint: env.MAILTRAP_ENDPOINT ? 'Configured' : 'Not configured',
-    tokenSet: !!env.MAILTRAP_TOKEN,
-    mode: process.env.NODE_ENV
+    configured: emailProvider === 'resend' ? !!process.env.RESEND_API_KEY : !!(env.MAILTRAP_TOKEN && env.MAILTRAP_ENDPOINT),
+    provider: emailProvider === 'resend' ? 'Resend' : (env.MAILTRAP_TOKEN ? 'Mailtrap' : 'None'),
+    endpoint: emailProvider === 'resend' ? 'Resend API' : (env.MAILTRAP_ENDPOINT ? 'Configured' : 'Not configured'),
+    tokenSet: emailProvider === 'resend' ? !!process.env.RESEND_API_KEY : !!env.MAILTRAP_TOKEN,
+    mode: process.env.NODE_ENV,
+    from: process.env.EMAIL_FROM || 'Not set'
   };
   
   res.json(config);
