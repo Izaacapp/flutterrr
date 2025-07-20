@@ -180,7 +180,7 @@ EOF
                         echo "Testing production endpoints..."
                         
                         # Test API
-                        curl -f https://www.xbullet.me/health || exit 1
+                        curl -f https://www.xbullet.me/api/health || exit 1
                         echo "✅ API is responding"
                         
                         # Test Frontend
