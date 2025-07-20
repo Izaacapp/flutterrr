@@ -140,7 +140,9 @@ CORS_ORIGIN=https://www.xbullet.me,https://xbullet.me
 
 # === Email ===
 MAILTRAP_TOKEN=${MAILTRAP_TOKEN}
+MAILTRAP_ENDPOINT=https://send.api.mailtrap.io
 EMAIL_FROM=noreply@xbullet.me
+EMAIL_FROM_NAME=Passport Buddy
 
 # === Docker Tag ===
 TAG=${BUILD_TAG}
