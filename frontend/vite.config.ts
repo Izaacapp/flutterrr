@@ -14,15 +14,17 @@ export default defineConfig({
   },
   define: {
     // Define the variables your app expects
-    __GRAPHQL_URL__: JSON.stringify(
-      process.env.NODE_ENV === 'production' 
-        ? 'http://138.197.72.196:3000/graphql' 
-        : 'http://localhost:3000/graphql'
+    'import.meta.env.VITE_GRAPHQL_URL': JSON.stringify(
+      process.env.VITE_GRAPHQL_URL || (process.env.NODE_ENV === 'production' 
+        ? 'https://www.xbullet.me/graphql' 
+        : 'http://localhost:3000/graphql')
     ),
-    __API_URL__: JSON.stringify(
-      process.env.NODE_ENV === 'production' 
-        ? 'http://138.197.72.196:3000' 
-        : 'http://localhost:3000'
+    'import.meta.env.VITE_API_URL': JSON.stringify(
+      process.env.VITE_API_URL || (process.env.NODE_ENV === 'production' 
+        ? 'https://www.xbullet.me' 
+        : 'http://localhost:3000')
     ),
+    'import.meta.env.VITE_AUTH_TOKEN_KEY': JSON.stringify('passport_buddy_token'),
+    'import.meta.env.VITE_AUTH_USER_KEY': JSON.stringify('passport_buddy_user'),
   }
 })
