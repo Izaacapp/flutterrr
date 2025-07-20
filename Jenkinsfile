@@ -161,7 +161,7 @@ ENV
                     sleep 30
                     
                     echo "Checking Backend health..."
-                    curl -f http://localhost:3000/health || exit 1
+                    curl -f http://localhost:3000/api/health || exit 1
                     
                     echo "Deployment completed successfully!"
 EOF
