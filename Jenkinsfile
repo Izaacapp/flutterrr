@@ -97,7 +97,8 @@ pipeline {
                     string(credentialsId: 'jwt-secret', variable: 'JWT_SECRET'),
                     string(credentialsId: 'session-secret', variable: 'SESSION_SECRET'),
                     string(credentialsId: 'do-spaces-key', variable: 'DO_SPACES_KEY'),
-                    string(credentialsId: 'do-spaces-secret', variable: 'DO_SPACES_SECRET')
+                    string(credentialsId: 'do-spaces-secret', variable: 'DO_SPACES_SECRET'),
+                    string(credentialsId: 'resend-api-key', variable: 'RESEND_API_KEY')
                 ]) {
                     sh """
                         ssh -o StrictHostKeyChecking=no -i \${SSH_KEY} ${PROD_USER}@${PROD_SERVER} << 'EOF'
@@ -130,9 +131,9 @@ ALLOWED_ORIGINS=https://www.xbullet.me,https://xbullet.me
 CORS_ORIGIN=https://www.xbullet.me,https://xbullet.me
 
 # Email Service
-MAILTRAP_TOKEN=59406d5785ac01dc13eed94c3ec47dcb
-MAILTRAP_ENDPOINT=https://send.api.mailtrap.io
-EMAIL_FROM=noreply@xbullet.me
+EMAIL_PROVIDER=resend
+RESEND_API_KEY=${RESEND_API_KEY}
+EMAIL_FROM=hello@send.xbullet.me
 EMAIL_FROM_NAME=Passport Buddy
 
 # Storage

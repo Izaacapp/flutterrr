@@ -262,6 +262,81 @@
   cursor: default;
 }
 
+/* Comments Count */
+.comments-count {
+  background: none;
+  border: none;
+  font-size: 14px;
+  color: var(--pb-dark-gray);
+  cursor: pointer;
+  padding: 0;
+  margin-left: 16px;
+  transition: color 0.2s;
+}
+
+.comments-count:hover {
+  color: var(--pb-primary);
+}
+
+/* Comments Section */
+.comments-section {
+  padding: 16px 20px 0;
+  border-top: 1px solid var(--pb-light-gray);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.comment {
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.comment:last-child {
+  margin-bottom: 0;
+}
+
+.comment-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.comment-username {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--pb-primary);
+}
+
+.comment-time {
+  font-size: 12px;
+  color: var(--pb-secondary);
+}
+
+.comment-content {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--pb-primary);
+  margin: 0;
+}
+
+.comment-delete {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  font-size: 12px;
+  color: var(--pb-secondary);
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.comment-delete:hover {
+  color: #dc2626;
+}
+
 /* Mobile Responsive */
 @media (max-width: 614px) {
   .post-card {

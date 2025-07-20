@@ -39,9 +39,9 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - CORS_ORIGIN=${ALLOWED_ORIGINS}
-      - MAILTRAP_TOKEN=${MAILTRAP_TOKEN}
-      - MAILTRAP_ENDPOINT=${MAILTRAP_ENDPOINT:-https://send.api.mailtrap.io}
-      - EMAIL_FROM=${EMAIL_FROM:-noreply@xbullet.me}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-resend}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM:-hello@send.xbullet.me}
       - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-Passport Buddy}
       - ENABLE_SIGNUP=${ENABLE_SIGNUP:-true}
       - ENABLE_EMAIL_VERIFICATION=${ENABLE_EMAIL_VERIFICATION:-true}

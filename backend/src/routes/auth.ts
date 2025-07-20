@@ -4,7 +4,7 @@ import User, { IUser } from '../models/User';
 import AppError from '../utils/appError';
 import catchAsync from '../utils/catchAsync';
 import generateOtp from '../utils/generateOtp';
-import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetOTP, sendPasswordResetSuccessEmail } from '../mailtrap/emails';
+import { sendVerificationEmail, sendWelcomeEmail, sendPasswordResetOTP, sendPasswordResetSuccessEmail } from '../services/email.service';
 import { authenticate } from '../middleware/auth';
 
 const router = Router();
@@ -94,12 +94,31 @@ router.post('/signup', catchAsync(async (req: Request, res: Response, next: Next
     // Send verification email
     await sendVerificationEmail(newUser.email, otp, newUser.fullName);
 
-    createSendToken(
-      newUser,
-      201,
-      res,
-      'Registration Successful. Check your email for OTP verification'
-    );
+    // In development, include OTP in response for easier testing
+    if (process.env.NODE_ENV === 'development') {
+      const token = signToken((newUser as any)._id.toString());
+      
+      // Remove sensitive data except OTP for dev
+      newUser.password = undefined as any;
+      newUser.otpExpires = undefined;
+      
+      res.status(201).json({
+        status: 'success',
+        message: 'Registration Successful. Check your email for OTP verification',
+        token,
+        data: {
+          user: newUser,
+          devOTP: otp // Include OTP for development testing
+        },
+      });
+    } else {
+      createSendToken(
+        newUser,
+        201,
+        res,
+        'Registration Successful. Check your email for OTP verification'
+      );
+    }
   } catch (error) {
     await User.findByIdAndDelete(newUser._id);
     return next(
