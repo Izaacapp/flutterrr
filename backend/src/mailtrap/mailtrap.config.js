@@ -11,7 +11,7 @@ const mailtrapClient = new MailtrapClient({
 });
 
 const sender = {
-    email: "info@majorregrets.com",
+    email: "noreply@xbullet.me",
     name: "Passport Buddy",
 };
 
