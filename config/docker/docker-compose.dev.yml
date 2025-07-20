@@ -48,6 +48,8 @@ services:
       - UPLOAD_URL=${UPLOAD_URL}
       - MAILTRAP_TOKEN=${MAILTRAP_TOKEN}
       - MAILTRAP_ENDPOINT=${MAILTRAP_ENDPOINT}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-mailtrap}
+      - RESEND_API_KEY=${RESEND_API_KEY}
       - EMAIL_FROM=${EMAIL_FROM:-noreply@passportbuddy.dev}
       - EMAIL_FROM_NAME=${EMAIL_FROM_NAME:-Passport Buddy Dev}
       - OTP_EXPIRY_MINUTES=${OTP_EXPIRY_MINUTES:-5}

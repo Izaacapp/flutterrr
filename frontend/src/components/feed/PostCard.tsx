@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './PostCard.css';
+import { postService } from '../../services/post.service';
 
 interface PostImage {
   url: string;
@@ -13,6 +14,13 @@ interface PostAuthor {
   avatar?: string;
 }
 
+interface Comment {
+  _id: string;
+  author: PostAuthor;
+  content: string;
+  createdAt: string;
+}
+
 interface PostProps {
   post: {
     _id: string;
@@ -21,14 +29,19 @@ interface PostProps {
     createdAt: string;
     author?: PostAuthor;
     likes: string[];
-    comments: any[];
+    comments: Comment[];
   };
   currentUserId?: string;
   onToggleLike?: (postId: string) => void;
+  onCommentAdded?: (postId: string, comment: Comment) => void;
+  onCommentDeleted?: (postId: string, commentId: string) => void;
 }
 
-export function PostCard({ post, currentUserId, onToggleLike }: PostProps) {
+export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, onCommentDeleted }: PostProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [commentText, setCommentText] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [showComments, setShowComments] = useState(false);
   const hasImages = post.images && post.images.length > 0;
   const hasMultipleImages = post.images && post.images.length > 1;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
@@ -71,6 +84,37 @@ export function PostCard({ post, currentUserId, onToggleLike }: PostProps) {
     if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
     if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
     return date.toLocaleDateString();
+  };
+
+  const handleSubmitComment = async () => {
+    if (!commentText.trim() || isSubmittingComment || !currentUserId) return;
+
+    setIsSubmittingComment(true);
+    try {
+      const response = await postService.addComment(post._id, commentText.trim());
+      if (response.status === 'success' && onCommentAdded) {
+        onCommentAdded(post._id, response.comment);
+        setCommentText('');
+        setShowComments(true);
+      }
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!currentUserId || !onCommentDeleted) return;
+
+    try {
+      const response = await postService.deleteComment(post._id, commentId);
+      if (response.status === 'success') {
+        onCommentDeleted(post._id, commentId);
+      }
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+    }
   };
 
   return (
@@ -179,7 +223,11 @@ export function PostCard({ post, currentUserId, onToggleLike }: PostProps) {
                 strokeLinejoin="round"/>
             </svg>
           </button>
-          <button className="action-button" aria-label="Comment">
+          <button 
+            className="action-button" 
+            aria-label="Comment"
+            onClick={() => setShowComments(!showComments)}
+          >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22l-1.344-4.992Z" 
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -206,7 +254,39 @@ export function PostCard({ post, currentUserId, onToggleLike }: PostProps) {
       {/* Likes count */}
       <div className="post-stats">
         <button className="likes-count">{likesCount} {likesCount === 1 ? 'like' : 'likes'}</button>
+        {post.comments.length > 0 && (
+          <button 
+            className="comments-count" 
+            onClick={() => setShowComments(!showComments)}
+          >
+            {post.comments.length} {post.comments.length === 1 ? 'comment' : 'comments'}
+          </button>
+        )}
       </div>
+
+      {/* Comments section */}
+      {showComments && post.comments.length > 0 && (
+        <div className="comments-section">
+          {post.comments.map((comment) => (
+            <div key={comment._id} className="comment">
+              <div className="comment-author">
+                <span className="comment-username">{comment.author?.username || 'anonymous'}</span>
+                <span className="comment-time">{formatTimeAgo(comment.createdAt)}</span>
+              </div>
+              <p className="comment-content">{comment.content}</p>
+              {currentUserId && (comment.author?._id === currentUserId || post.author?._id === currentUserId) && (
+                <button 
+                  className="comment-delete"
+                  onClick={() => handleDeleteComment(comment._id)}
+                  aria-label="Delete comment"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Add comment */}
       <div className="add-comment">
@@ -214,8 +294,22 @@ export function PostCard({ post, currentUserId, onToggleLike }: PostProps) {
           type="text" 
           placeholder="Add a comment..." 
           className="comment-input"
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              handleSubmitComment();
+            }
+          }}
+          disabled={!currentUserId || isSubmittingComment}
         />
-        <button className="comment-post" disabled>Post</button>
+        <button 
+          className="comment-post" 
+          disabled={!commentText.trim() || !currentUserId || isSubmittingComment}
+          onClick={handleSubmitComment}
+        >
+          {isSubmittingComment ? 'Posting...' : 'Post'}
+        </button>
       </div>
     </article>
   );

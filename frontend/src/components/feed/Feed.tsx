@@ -21,6 +21,16 @@ export function Feed() {
     }
   };
 
+  const handleCommentAdded = async (postId: string, comment: any) => {
+    // Refetch to get updated posts with new comment
+    refetch();
+  };
+
+  const handleCommentDeleted = async (postId: string, commentId: string) => {
+    // Refetch to get updated posts without deleted comment
+    refetch();
+  };
+
   if (loading) return (
     <div className="feed-loading">
       <div className="spinner"></div>
@@ -55,6 +65,8 @@ export function Feed() {
             post={post} 
             currentUserId={user?.id}
             onToggleLike={handleToggleLike}
+            onCommentAdded={handleCommentAdded}
+            onCommentDeleted={handleCommentDeleted}
           />
         ))}
       </div>
