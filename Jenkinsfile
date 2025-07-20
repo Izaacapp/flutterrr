@@ -187,8 +187,10 @@ EOF
                         curl -f https://www.xbullet.me || exit 1
                         echo "✅ Frontend is responding"
                         
-                        # Test GraphQL
-                        curl -f https://www.xbullet.me/graphql || exit 1
+                        # Test GraphQL (POST request with query)
+                        curl -f -X POST https://www.xbullet.me/graphql \
+                            -H "Content-Type: application/json" \
+                            -d '{"query":"{ __typename }"}' || exit 1
                         echo "✅ GraphQL is responding"
                     """
                 }
