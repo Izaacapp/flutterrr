@@ -17,6 +17,13 @@ const sendVerificationEmail = async (email, verificationToken, name) => {
         console.log("Email sent successfully:", response);
     } catch (error) {
         console.error("Error sending verification email:", error);
+        // In development, log the OTP instead of failing
+        if (process.env.NODE_ENV === 'development') {
+            console.log('📧 DEVELOPMENT MODE - Email would have been sent to:', email);
+            console.log('📧 Verification Code:', verificationToken);
+            console.log('📧 Name:', name);
+            return; // Don't throw error in development
+        }
         throw new Error(`Failed to send verification email: ${error}`);
     }
 };
