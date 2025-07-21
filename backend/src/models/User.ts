@@ -28,6 +28,9 @@ export interface IUser extends Document {
     flightNumber?: string;
   }[];
   friends?: Schema.Types.ObjectId[];
+  followers?: Schema.Types.ObjectId[];
+  following?: Schema.Types.ObjectId[];
+  blockedUsers?: Schema.Types.ObjectId[];
   isAdmin: boolean;
   emailVerified: boolean;
   // OTP fields for email verification
@@ -98,6 +101,18 @@ const userSchema = new Schema<IUser>({
     flightNumber: String,
   }],
   friends: [{
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+  followers: [{
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+  following: [{
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  }],
+  blockedUsers: [{
     type: Schema.Types.ObjectId,
     ref: 'User',
   }],

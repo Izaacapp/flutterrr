@@ -10,6 +10,7 @@ interface AuthContextType {
   verifyAccount: (otp: string) => Promise<AuthResponse>;
   resendOTP: () => Promise<OTPResponse>;
   logout: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
   needsVerification: boolean;
 }
@@ -91,6 +92,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await client.clearStore();
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      // Update localStorage as well
+      const USER_KEY = import.meta.env.VITE_AUTH_USER_KEY || 'passport_buddy_user';
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+    }
+  };
+
   const needsVerificationValue = user ? !user.emailVerified : false;
   console.log('AuthContext - user:', user, 'needsVerification:', needsVerificationValue);
   
@@ -102,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     verifyAccount,
     resendOTP,
     logout,
+    updateUser,
     isAuthenticated: !!user && !!authService.getToken(),
     needsVerification: needsVerificationValue,
   };
