@@ -49,9 +49,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Assets section - currently empty since we use dart-define for configuration
-  # assets:
-  #   - images/
+  # Assets section
+  assets:
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:

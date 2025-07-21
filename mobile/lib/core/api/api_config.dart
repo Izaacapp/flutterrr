@@ -1,13 +1,15 @@
 // lib/core/api/api_config.dart
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 
 class ApiConfig {
-  static const String prodApi = String.fromEnvironment(
-    'PROD_API_URL',
-    defaultValue: ''
-  );
+  static String get prodApi => dotenv.env['PROD_API_URL'] ?? 
+    const String.fromEnvironment(
+      'PROD_API_URL',
+      defaultValue: ''
+    );
   static const Duration timeout = Duration(seconds: 2);
   
   // Cache the discovered endpoint
@@ -72,16 +74,18 @@ class ApiConfig {
       String localUrl;
       if (Platform.isAndroid) {
         // Android emulator special IP
-        localUrl = String.fromEnvironment(
-          'ANDROID_EMULATOR_API_URL',
-          defaultValue: ''
-        );
+        localUrl = dotenv.env['ANDROID_EMULATOR_API_URL'] ?? 
+          const String.fromEnvironment(
+            'ANDROID_EMULATOR_API_URL',
+            defaultValue: ''
+          );
       } else {
         // iOS simulator can use localhost
-        localUrl = String.fromEnvironment(
-          'IOS_SIMULATOR_API_URL',
-          defaultValue: ''
-        );
+        localUrl = dotenv.env['IOS_SIMULATOR_API_URL'] ?? 
+          const String.fromEnvironment(
+            'IOS_SIMULATOR_API_URL',
+            defaultValue: ''
+          );
       }
       
       print('📱 Simulator/Emulator detected - using $localUrl');

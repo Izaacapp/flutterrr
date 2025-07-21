@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/utils/logger.dart';
@@ -77,10 +78,11 @@ class PhotoSrc {
 }
 
 class PexelsService {
-  static const String apiKey = String.fromEnvironment(
-    'PEXELS_API_KEY',
-    defaultValue: ''
-  );
+  static String get apiKey => dotenv.env['PEXELS_API_KEY'] ?? 
+    const String.fromEnvironment(
+      'PEXELS_API_KEY',
+      defaultValue: ''
+    );
   static const String baseUrl = 'https://api.pexels.com/v1';
   
   final SharedPreferences? _prefs;
