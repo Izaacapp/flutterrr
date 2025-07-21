@@ -1,17 +1,47 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-interface RightSidebarProps {
+interface LocationExplorerProps {
   className?: string;
 }
 
-const RightSidebar: React.FC<RightSidebarProps> = () => {
+const LocationExplorer: React.FC<LocationExplorerProps> = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Hide sidebar on smaller screens
   if (typeof window !== 'undefined' && window.innerWidth < 1024) {
     return null;
   }
+
+  const popularDestinations = [
+    'Paris, France',
+    'Tokyo, Japan', 
+    'New York City',
+    'London, England',
+    'Bali, Indonesia',
+    'Dubai, UAE',
+    'Rome, Italy',
+    'Sydney, Australia',
+    'Barcelona, Spain',
+    'Thailand',
+    'Iceland',
+    'Santorini, Greece'
+  ];
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/explore?location=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
+  };
+
+  const handleLocationClick = (location: string) => {
+    navigate(`/explore?location=${encodeURIComponent(location)}`);
+  };
 
   return (
     <div style={{
@@ -38,14 +68,13 @@ const RightSidebar: React.FC<RightSidebarProps> = () => {
           fontSize: '1.25rem',
           fontWeight: '600',
           color: 'var(--pb-dark-purple)',
-          margin: '0 auto 1rem',
-          overflow: 'hidden'
+          margin: '0 auto 1rem'
         }}>
           {user?.avatar ? (
             <img 
               src={user.avatar} 
               alt="Avatar" 
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
             />
           ) : (
             user?.username?.charAt(0)?.toUpperCase() || 'U'
@@ -66,6 +95,93 @@ const RightSidebar: React.FC<RightSidebarProps> = () => {
         }}>
           {user?.fullName}
         </p>
+      </div>
+
+      {/* Location Search Section */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h4 style={{ 
+          marginBottom: '1rem', 
+          fontSize: '0.875rem', 
+          fontWeight: '600', 
+          color: 'var(--pb-dark-purple)' 
+        }}>
+          🌍 Explore Locations
+        </h4>
+        <form onSubmit={handleSearch}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.5rem',
+            backgroundColor: 'var(--pb-ultra-light)',
+            borderRadius: '8px',
+            border: '1px solid var(--pb-light-periwinkle)'
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pb-medium-purple)" strokeWidth="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <input 
+              type="text" 
+              placeholder="Search places..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                border: 'none',
+                background: 'transparent',
+                outline: 'none',
+                flex: 1,
+                color: 'var(--pb-dark-purple)',
+                fontSize: '0.875rem'
+              }}
+            />
+          </div>
+        </form>
+      </div>
+
+      {/* Popular Destinations */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <h4 style={{ 
+          marginBottom: '1rem', 
+          fontSize: '0.875rem', 
+          fontWeight: '600', 
+          color: 'var(--pb-dark-purple)' 
+        }}>
+          🔥 Popular Destinations
+        </h4>
+        {popularDestinations.map((destination) => (
+          <div 
+            key={destination}
+            onClick={() => handleLocationClick(destination)}
+            style={{
+              marginBottom: '0.75rem',
+              padding: '0.75rem',
+              backgroundColor: 'var(--pb-ultra-light)',
+              borderRadius: '8px',
+              border: '1px solid var(--pb-light-periwinkle)',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f0f0ff';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--pb-ultra-light)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--pb-medium-purple)'
+              }} />
+              <div style={{ fontWeight: '500', color: 'var(--pb-dark-purple)', fontSize: '0.875rem' }}>
+                {destination}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Quick Stats */}
@@ -133,144 +249,17 @@ const RightSidebar: React.FC<RightSidebarProps> = () => {
         </div>
       </div>
 
-      {/* Location Search Section */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h4 style={{ 
-          marginBottom: '1rem', 
-          fontSize: '0.875rem', 
-          fontWeight: '600', 
-          color: 'var(--pb-dark-purple)' 
-        }}>
-          Explore Locations
-        </h4>
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          const input = e.currentTarget.querySelector('input') as HTMLInputElement;
-          if (input.value.trim()) {
-            window.location.href = `/search?location=${encodeURIComponent(input.value.trim())}`;
-            input.value = '';
-          }
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem',
-            backgroundColor: 'var(--pb-ultra-light)',
-            borderRadius: '8px',
-            border: '1px solid var(--pb-light-periwinkle)'
-          }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pb-medium-purple)" strokeWidth="2">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-              <circle cx="12" cy="10" r="3"/>
-            </svg>
-            <input 
-              type="text" 
-              placeholder="Search places..." 
-              style={{
-                border: 'none',
-                background: 'transparent',
-                outline: 'none',
-                flex: 1,
-                color: 'var(--pb-dark-purple)',
-                fontSize: '0.875rem'
-              }}
-            />
-          </div>
-        </form>
-      </div>
-
-      {/* Popular Destinations */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h4 style={{ 
-          marginBottom: '1rem',
-          fontSize: '0.875rem', 
-          fontWeight: '600', 
-          color: 'var(--pb-dark-purple)' 
-        }}>
-          Popular Destinations
-        </h4>
-        
-        {['Paris, France', 'Tokyo, Japan', 'New York City', 'Bali, Indonesia', 'London, England', 'Dubai, UAE'].map((destination) => (
-          <div 
-            key={destination}
-            onClick={() => window.location.href = `/search?location=${encodeURIComponent(destination)}`}
-            style={{
-              marginBottom: '0.5rem',
-              padding: '0.5rem',
-              backgroundColor: 'var(--pb-ultra-light)',
-              borderRadius: '6px',
-              border: '1px solid var(--pb-light-periwinkle)',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s ease',
-              fontSize: '0.75rem'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f0f0ff';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--pb-ultra-light)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <div style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--pb-medium-purple)'
-              }} />
-              <span style={{ color: 'var(--pb-dark-purple)', fontWeight: '500' }}>
-                {destination}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Travel Tips */}
-      <div style={{
-        backgroundColor: 'var(--pb-ultra-light)',
-        borderRadius: '12px',
-        padding: '1rem',
-        border: '1px solid var(--pb-light-periwinkle)'
-      }}>
-        <h4 style={{ 
-          marginBottom: '0.5rem', 
-          fontSize: '0.875rem', 
-          fontWeight: '600', 
-          color: 'var(--pb-dark-purple)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.25rem'
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M12 16V12"/>
-            <path d="M12 8h.01"/>
-          </svg>
-          Travel Tip
-        </h4>
-        <p style={{ 
-          margin: 0,
-          fontSize: '0.75rem', 
-          color: 'var(--pb-medium-purple)',
-          lineHeight: '1.4'
-        }}>
-          Save your boarding passes and travel documents in the app for easy access during your trips!
-        </p>
-      </div>
-
       {/* Footer */}
       <div style={{ 
         textAlign: 'center', 
         fontSize: '0.75rem', 
         color: 'var(--pb-medium-purple)',
-        marginTop: '2rem'
+        marginTop: '1rem'
       }}>
-        <p>&copy; 2025 Passport Buddy</p>
+        <p>&copy; 2024 Passport Buddy</p>
       </div>
     </div>
   );
 };
 
-export default RightSidebar;
+export default LocationExplorer;

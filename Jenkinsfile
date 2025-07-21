@@ -49,17 +49,22 @@ pipeline {
                 
                 stage('Build Frontend') {
                     steps {
-                        script {
-                            echo "Building Frontend Docker image..."
-                            sh """
-                                docker build -f frontend/Dockerfile.prod \
-                                    --build-arg VITE_API_URL=https://www.xbullet.me \
-                                    --build-arg VITE_GRAPHQL_URL=https://www.xbullet.me/graphql \
-                                    --build-arg VITE_WS_URL=wss://www.xbullet.me/graphql \
-                                    -t ${FRONTEND_IMAGE}:${BUILD_TAG} \
-                                    -t ${FRONTEND_IMAGE}:latest \
-                                    . 
-                            """
+                        withCredentials([
+                            string(credentialsId: 'pexels-api-key', variable: 'PEXELS_API_KEY')
+                        ]) {
+                            script {
+                                echo "Building Frontend Docker image..."
+                                sh """
+                                    docker build -f frontend/Dockerfile.prod \
+                                        --build-arg VITE_API_URL=https://www.xbullet.me \
+                                        --build-arg VITE_GRAPHQL_URL=https://www.xbullet.me/graphql \
+                                        --build-arg VITE_WS_URL=wss://www.xbullet.me/graphql \
+                                        --build-arg VITE_PEXELS_API_KEY=\${PEXELS_API_KEY} \
+                                        -t ${FRONTEND_IMAGE}:${BUILD_TAG} \
+                                        -t ${FRONTEND_IMAGE}:latest \
+                                        . 
+                                """
+                            }
                         }
                     }
                 }
@@ -98,7 +103,8 @@ pipeline {
                     string(credentialsId: 'session-secret', variable: 'SESSION_SECRET'),
                     string(credentialsId: 'do-spaces-key', variable: 'DO_SPACES_KEY'),
                     string(credentialsId: 'do-spaces-secret', variable: 'DO_SPACES_SECRET'),
-                    string(credentialsId: 'resend-api-key', variable: 'RESEND_API_KEY')
+                    string(credentialsId: 'resend-api-key', variable: 'RESEND_API_KEY'),
+                    string(credentialsId: 'pexels-api-key', variable: 'PEXELS_API_KEY')
                 ]) {
                     sh """
                         ssh -o StrictHostKeyChecking=no -i \${SSH_KEY} ${PROD_USER}@${PROD_SERVER} << 'EOF'
@@ -154,6 +160,9 @@ DO_SPACES_REGION=nyc3
 VITE_API_URL=https://www.xbullet.me
 VITE_GRAPHQL_URL=https://www.xbullet.me/graphql
 VITE_WS_URL=wss://www.xbullet.me/graphql
+
+# Third-party APIs
+PEXELS_API_KEY=${PEXELS_API_KEY}
 
 # Feature Flags
 ENABLE_SIGNUP=true
