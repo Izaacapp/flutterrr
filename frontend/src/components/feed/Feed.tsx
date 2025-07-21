@@ -3,6 +3,7 @@ import { useGetPostsQuery } from '../../gql/generated';
 import { PostCard } from './PostCard';
 import { useAuth } from '../../contexts/AuthContext';
 import postService from '../../services/post.service';
+import { useToast } from '../../contexts/ToastContext';
 import './Feed.css';
 
 export function Feed() {
@@ -11,6 +12,7 @@ export function Feed() {
     pollInterval: 10000,
   });
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const handleToggleLike = async (postId: string) => {
     try {
@@ -29,6 +31,17 @@ export function Feed() {
   const handleCommentDeleted = async (postId: string, commentId: string) => {
     // Refetch to get updated posts without deleted comment
     refetch();
+  };
+
+  const handlePostDeleted = async (postId: string) => {
+    try {
+      await postService.deletePost(postId);
+      showToast('Post deleted successfully', 'success');
+      refetch();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      showToast('Failed to delete post', 'error');
+    }
   };
 
   if (loading) return (
@@ -67,6 +80,7 @@ export function Feed() {
             onToggleLike={handleToggleLike}
             onCommentAdded={handleCommentAdded}
             onCommentDeleted={handleCommentDeleted}
+            onPostDeleted={handlePostDeleted}
           />
         ))}
       </div>

@@ -5,9 +5,10 @@ import './Auth.css';
 
 interface LoginProps {
   onSwitchToRegister: () => void;
+  onForgotPassword: () => void;
 }
 
-export const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
+export const Login: React.FC<LoginProps> = ({ onSwitchToRegister, onForgotPassword }) => {
   const { login, verifyAccount, resendOTP } = useAuth();
   const [formData, setFormData] = useState({
     emailOrUsername: '',
@@ -119,6 +120,16 @@ export const Login: React.FC<LoginProps> = ({ onSwitchToRegister }) => {
             {loading ? 'Logging in...' : 'Log In'}
           </button>
         </form>
+        
+        <div className="auth-links">
+          <button 
+            type="button"
+            onClick={onForgotPassword} 
+            className="auth-text-link"
+          >
+            Forgot password?
+          </button>
+        </div>
         
         <div className="auth-divider">
           <span>OR</span>

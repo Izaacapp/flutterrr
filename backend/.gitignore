@@ -1,3 +1,6 @@
 
 # Uploaded files (local storage)
 api/uploads/
+
+# Development emails
+dev-emails/

@@ -15,6 +15,7 @@ export default {
         }
         const posts = await Post.find()
           .populate('author', 'username fullName avatar bio location homeAirport passportCountry milesFlown countriesVisited emailVerified')
+          .populate('comments.author', 'username fullName avatar')
           .sort({ createdAt: -1 })
           .lean();
         
@@ -31,9 +32,14 @@ export default {
           likes: Array.isArray(post.likes) ? post.likes.map((id: any) => id?.toString() || '') : [],
           comments: (post.comments || []).map((comment: any) => ({
             _id: comment._id?.toString() || '',
-            author: comment.author,
+            author: comment.author ? {
+              _id: comment.author._id?.toString() || '',
+              username: comment.author.username || '',
+              fullName: comment.author.fullName || '',
+              avatar: comment.author.avatar || null
+            } : null,
             content: comment.content,
-            createdAt: comment.createdAt
+            createdAt: comment.createdAt ? comment.createdAt.toISOString() : new Date().toISOString()
           })),
           createdAt: post.createdAt.toISOString()
         }));

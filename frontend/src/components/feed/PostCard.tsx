@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import './PostCard.css';
 import { postService } from '../../services/post.service';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 
 interface PostImage {
   url: string;
@@ -35,9 +36,10 @@ interface PostProps {
   onToggleLike?: (postId: string) => void;
   onCommentAdded?: (postId: string, comment: Comment) => void;
   onCommentDeleted?: (postId: string, commentId: string) => void;
+  onPostDeleted?: (postId: string) => void;
 }
 
-export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, onCommentDeleted }: PostProps) {
+export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, onCommentDeleted, onPostDeleted }: PostProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -45,10 +47,32 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
   const [lastTap, setLastTap] = useState(0);
   const [showLikeAnimation, setShowLikeAnimation] = useState(false);
   const [showCopiedMessage, setShowCopiedMessage] = useState(false);
+  const [activeCommentMenu, setActiveCommentMenu] = useState<string | null>(null);
+  const [showPostMenu, setShowPostMenu] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const postDropdownRef = useRef<HTMLDivElement>(null);
   const hasImages = post.images && post.images.length > 0;
   const hasMultipleImages = post.images && post.images.length > 1;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
   const likesCount = post.likes.length;
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setActiveCommentMenu(null);
+      }
+      if (postDropdownRef.current && !postDropdownRef.current.contains(event.target as Node)) {
+        setShowPostMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const getAvatarColor = (avatarUrl?: string): string => {
     if (!avatarUrl) return '#8b5cf6';
@@ -160,6 +184,18 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
     }
   };
 
+  const handleDeletePost = async () => {
+    setShowDeleteConfirm(true);
+    setShowPostMenu(false);
+  };
+
+  const handleConfirmDelete = () => {
+    if (onPostDeleted) {
+      onPostDeleted(post._id);
+    }
+    setShowDeleteConfirm(false);
+  };
+
   return (
     <article className="post-card">
       {/* Header */}
@@ -190,13 +226,31 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
             <time className="post-time">{formatTimeAgo(post.createdAt)}</time>
           </div>
         </div>
-        <button className="post-options" aria-label="Post options">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <circle cx="5" cy="12" r="2" fill="currentColor"/>
-            <circle cx="12" cy="12" r="2" fill="currentColor"/>
-            <circle cx="19" cy="12" r="2" fill="currentColor"/>
-          </svg>
-        </button>
+        {currentUserId && post.author?._id === currentUserId && (
+          <div className="post-menu-container" ref={postDropdownRef}>
+            <button 
+              className="post-options" 
+              aria-label="Post options"
+              onClick={() => setShowPostMenu(!showPostMenu)}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <circle cx="5" cy="12" r="2" fill="currentColor"/>
+                <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                <circle cx="19" cy="12" r="2" fill="currentColor"/>
+              </svg>
+            </button>
+            {showPostMenu && (
+              <div className="post-dropdown">
+                <button 
+                  className="post-dropdown-item"
+                  onClick={handleDeletePost}
+                >
+                  Delete Post
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Content - moved up before images */}
@@ -322,48 +376,82 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
         <div className="comments-section">
           {post.comments.map((comment) => (
             <div key={comment._id} className="comment">
-              <div className="comment-author">
-                <span className="comment-username">{comment.author?.username || 'anonymous'}</span>
-                <span className="comment-time">{formatTimeAgo(comment.createdAt)}</span>
+              <div className="comment-header">
+                <div className="comment-author">
+                  <span className="comment-username">{comment.author?.username || 'anonymous'}</span>
+                  <span className="comment-time">{formatTimeAgo(comment.createdAt)}</span>
+                </div>
+                {currentUserId && (comment.author?._id === currentUserId || post.author?._id === currentUserId) && (
+                  <div className="comment-menu-container" ref={activeCommentMenu === comment._id ? dropdownRef : null}>
+                    <button 
+                      className="comment-menu-button"
+                      onClick={() => setActiveCommentMenu(activeCommentMenu === comment._id ? null : comment._id)}
+                      aria-label="Comment options"
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <circle cx="5" cy="12" r="2" fill="currentColor"/>
+                        <circle cx="12" cy="12" r="2" fill="currentColor"/>
+                        <circle cx="19" cy="12" r="2" fill="currentColor"/>
+                      </svg>
+                    </button>
+                    {activeCommentMenu === comment._id && (
+                      <div className="comment-dropdown">
+                        <button 
+                          className="comment-dropdown-item"
+                          onClick={() => {
+                            handleDeleteComment(comment._id);
+                            setActiveCommentMenu(null);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <p className="comment-content">{comment.content}</p>
-              {currentUserId && (comment.author?._id === currentUserId || post.author?._id === currentUserId) && (
-                <button 
-                  className="comment-delete"
-                  onClick={() => handleDeleteComment(comment._id)}
-                  aria-label="Delete comment"
-                >
-                  Delete
-                </button>
-              )}
             </div>
           ))}
         </div>
       )}
 
       {/* Add comment */}
-      <div className="add-comment">
-        <input 
-          type="text" 
-          placeholder="Add a comment..." 
-          className="comment-input"
-          value={commentText}
-          onChange={(e) => setCommentText(e.target.value)}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter') {
-              handleSubmitComment();
-            }
-          }}
-          disabled={!currentUserId || isSubmittingComment}
-        />
-        <button 
-          className="comment-post" 
-          disabled={!commentText.trim() || !currentUserId || isSubmittingComment}
-          onClick={handleSubmitComment}
-        >
-          {isSubmittingComment ? 'Posting...' : 'Post'}
-        </button>
-      </div>
+      {showComments && (
+        <div className="add-comment">
+          <input 
+            type="text" 
+            placeholder="Add a comment..." 
+            className="comment-input"
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleSubmitComment();
+              }
+            }}
+            disabled={!currentUserId || isSubmittingComment}
+          />
+          <button 
+            className="comment-post" 
+            disabled={!commentText.trim() || !currentUserId || isSubmittingComment}
+            onClick={handleSubmitComment}
+          >
+            {isSubmittingComment ? 'Posting...' : 'Post'}
+          </button>
+        </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete Post?"
+        message="This action cannot be undone. Are you sure you want to delete this post?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </article>
   );
 }

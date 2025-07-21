@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthPage } from './components/auth/AuthPage';
 import { OTPVerification } from './components/auth/OTPVerification';
 import { NavigationHeader } from './components/navigation/NavigationHeader';
@@ -23,6 +23,7 @@ const AppContent: React.FC = () => {
             <Route path="/flights" element={<Flights />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
         
