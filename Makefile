@@ -254,32 +254,50 @@ migrate-urls: ## Run URL migration script on production
 .PHONY: mobile
 mobile: ## Auto-detect device and run Flutter app
 	@echo "🚀 Starting Flutter app..."
-	@HOST_IP=$$(ipconfig getifaddr en0 2>/dev/null || hostname -I | awk '{print $$1}'); \
+	@if [ -f .env.dev ]; then \
+		export $$(cat .env.dev | grep -E '^(PEXELS_API_KEY|GOOGLE_PLACES_API_KEY)' | xargs); \
+	fi; \
+	HOST_IP=$$(ipconfig getifaddr en0 2>/dev/null || hostname -I | awk '{print $$1}'); \
 	DEVICES=$$(flutter devices); \
 	if echo "$$DEVICES" | grep -q "iPhone.*ios.*mobile"; then \
 		echo "📱 Physical iPhone detected"; \
 		echo "🔗 Using IP: $$HOST_IP"; \
 		echo "⚠️  Note: If build fails with signing error, run 'make mobile-ios-simulator' to use simulator"; \
-		cd mobile && flutter run --dart-define=API_URL=http://$$HOST_IP:3000/graphql || \
+		cd mobile && flutter run \
+			--dart-define=API_URL=http://$$HOST_IP:3000/graphql \
+			--dart-define=PEXELS_API_KEY=$$PEXELS_API_KEY \
+			--dart-define=GOOGLE_PLACES_API_KEY=$$GOOGLE_PLACES_API_KEY || \
 		(echo ""; echo "💡 Tip: For physical device, you need:"; \
 		echo "  1. Your own Apple Developer account"; \
 		echo "  2. Open Xcode and set your team"; \
 		echo "  3. Or use 'make mobile-ios-simulator' for simulator"); \
 	elif echo "$$DEVICES" | grep -q "iPhone.*simulator"; then \
 		echo "📱 iOS Simulator detected"; \
-		cd mobile && flutter run --dart-define=API_URL=http://localhost:3000/graphql; \
+		cd mobile && flutter run \
+			--dart-define=API_URL=http://localhost:3000/graphql \
+			--dart-define=PEXELS_API_KEY=$$PEXELS_API_KEY \
+			--dart-define=GOOGLE_PLACES_API_KEY=$$GOOGLE_PLACES_API_KEY; \
 	elif echo "$$DEVICES" | grep -q "emulator"; then \
 		echo "📱 Android Emulator detected"; \
-		cd mobile && flutter run --dart-define=API_URL=http://10.0.2.2:3000/graphql; \
+		cd mobile && flutter run \
+			--dart-define=API_URL=http://10.0.2.2:3000/graphql \
+			--dart-define=PEXELS_API_KEY=$$PEXELS_API_KEY \
+			--dart-define=GOOGLE_PLACES_API_KEY=$$GOOGLE_PLACES_API_KEY; \
 	elif echo "$$DEVICES" | grep -q "android.*mobile"; then \
 		echo "📱 Physical Android detected"; \
 		echo "🔗 Using IP: $$HOST_IP"; \
-		cd mobile && flutter run --dart-define=API_URL=http://$$HOST_IP:3000/graphql; \
+		cd mobile && flutter run \
+			--dart-define=API_URL=http://$$HOST_IP:3000/graphql \
+			--dart-define=PEXELS_API_KEY=$$PEXELS_API_KEY \
+			--dart-define=GOOGLE_PLACES_API_KEY=$$GOOGLE_PLACES_API_KEY; \
 	else \
 		echo "❌ No device detected. Opening iOS Simulator..."; \
 		open -a Simulator 2>/dev/null || echo "Could not open iOS Simulator"; \
 		sleep 3; \
-		cd mobile && flutter run --dart-define=API_URL=http://localhost:3000/graphql; \
+		cd mobile && flutter run \
+			--dart-define=API_URL=http://localhost:3000/graphql \
+			--dart-define=PEXELS_API_KEY=$$PEXELS_API_KEY \
+			--dart-define=GOOGLE_PLACES_API_KEY=$$GOOGLE_PLACES_API_KEY; \
 	fi
 
 .PHONY: mobile-ios-simulator
@@ -287,7 +305,15 @@ mobile-ios-simulator: ## Run on iOS Simulator
 	@echo "📱 Running on iOS Simulator..."
 	@open -a Simulator 2>/dev/null || echo "Opening iOS Simulator..."
 	@sleep 3
-	cd mobile && flutter run --dart-define=API_URL=http://localhost:3000/graphql
+	@if [ -f .env.dev ]; then \
+		export $$(cat .env.dev | grep -E '^(PEXELS_API_KEY|GOOGLE_PLACES_API_KEY)' | xargs); \
+		cd mobile && flutter run \
+			--dart-define=API_URL=http://localhost:3000/graphql \
+			--dart-define=PEXELS_API_KEY=$$PEXELS_API_KEY \
+			--dart-define=GOOGLE_PLACES_API_KEY=$$GOOGLE_PLACES_API_KEY; \
+	else \
+		cd mobile && flutter run --dart-define=API_URL=http://localhost:3000/graphql; \
+	fi
 
 .PHONY: mobile-ios-physical
 mobile-ios-physical: ## Run on physical iPhone
