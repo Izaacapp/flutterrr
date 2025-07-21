@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './PostCard.css';
 import { postService } from '../../services/post.service';
 import { ConfirmDialog } from '../common/ConfirmDialog';
@@ -40,6 +41,7 @@ interface PostProps {
 }
 
 export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, onCommentDeleted, onPostDeleted }: PostProps) {
+  const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
@@ -248,7 +250,13 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
             )}
           </div>
           <div className="author-info">
-            <h3 className="author-username">{post.author?.username || 'anonymous'}</h3>
+            <h3 
+              className="author-username" 
+              onClick={() => post.author?.username && navigate(`/profile/${post.author.username}`)}
+              style={{ cursor: 'pointer' }}
+            >
+              {post.author?.username || 'anonymous'}
+            </h3>
             <time className="post-time">{formatTimeAgo(post.createdAt)}</time>
           </div>
         </div>
@@ -405,7 +413,13 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
             <div key={comment._id} className="comment">
               <div className="comment-header">
                 <div className="comment-author">
-                  <span className="comment-username">{comment.author?.username || 'anonymous'}</span>
+                  <span 
+                    className="comment-username"
+                    onClick={() => comment.author?.username && navigate(`/profile/${comment.author.username}`)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {comment.author?.username || 'anonymous'}
+                  </span>
                   <span className="comment-time">{formatTimeAgo(comment.createdAt)}</span>
                 </div>
                 {currentUserId && (comment.author?._id === currentUserId || post.author?._id === currentUserId) && (

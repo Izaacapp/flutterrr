@@ -24,6 +24,7 @@ const AppContent: React.FC = () => {
             <Route path="/flights" element={<Flights />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:username" element={<Profile />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
