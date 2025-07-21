@@ -42,6 +42,9 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [lastTap, setLastTap] = useState(0);
+  const [showLikeAnimation, setShowLikeAnimation] = useState(false);
+  const [showCopiedMessage, setShowCopiedMessage] = useState(false);
   const hasImages = post.images && post.images.length > 0;
   const hasMultipleImages = post.images && post.images.length > 1;
   const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
@@ -86,6 +89,20 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
     return date.toLocaleDateString();
   };
 
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    
+    if (now - lastTap < DOUBLE_TAP_DELAY) {
+      if (!isLiked && onToggleLike) {
+        onToggleLike(post._id);
+        setShowLikeAnimation(true);
+        setTimeout(() => setShowLikeAnimation(false), 800);
+      }
+    }
+    setLastTap(now);
+  };
+
   const handleSubmitComment = async () => {
     if (!commentText.trim() || isSubmittingComment || !currentUserId) return;
 
@@ -114,6 +131,32 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
       }
     } catch (error) {
       console.error('Failed to delete comment:', error);
+    }
+  };
+
+  const handleShare = async () => {
+    const postUrl = `${window.location.origin}/post/${post._id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Post by ${post.author?.username || 'user'}`,
+          text: post.content || 'Check out this post!',
+          url: postUrl,
+        });
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error sharing:', error);
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(postUrl);
+        setShowCopiedMessage(true);
+        setTimeout(() => setShowCopiedMessage(false), 2000);
+      } catch (error) {
+        console.error('Failed to copy link:', error);
+      }
     }
   };
 
@@ -158,7 +201,7 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
 
       {/* Content - moved up before images */}
       {post.content && (
-        <div className="post-content">
+        <div className="post-content" onClick={handleDoubleTap}>
           <p className="post-text">{post.content}</p>
         </div>
       )}
@@ -166,12 +209,19 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
       {/* Images */}
       {hasImages && (
         <div className="post-media">
-          <div className="image-container">
+          <div className="image-container" onClick={handleDoubleTap}>
             <img 
               src={post.images![currentImageIndex].url} 
               alt={`Post image ${currentImageIndex + 1}`}
               className="post-image"
             />
+            {showLikeAnimation && (
+              <div className="like-animation">
+                <svg viewBox="0 0 24 24" fill="#8b5cf6">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </div>
+            )}
             {hasMultipleImages && (
               <>
                 <button 
@@ -215,9 +265,9 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
             aria-label="Like"
             onClick={() => onToggleLike && onToggleLike(post._id)}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill={isLiked ? "red" : "none"}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill={isLiked ? "#8b5cf6" : "none"}>
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" 
-                stroke={isLiked ? "red" : "currentColor"} 
+                stroke={isLiked ? "#8b5cf6" : "currentColor"} 
                 strokeWidth="2" 
                 strokeLinecap="round" 
                 strokeLinejoin="round"/>
@@ -233,7 +283,7 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
-          <button className="action-button" aria-label="Share">
+          <button className="action-button" aria-label="Share" onClick={handleShare}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
               <path d="M18 8C19.6569 8 21 6.65685 21 5C21 3.34315 19.6569 2 18 2C16.3431 2 15 3.34315 15 5C15 6.65685 16.3431 8 18 8Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M6 15C7.65685 15 9 13.6569 9 12C9 10.3431 7.65685 9 6 9C4.34315 9 3 10.3431 3 12C3 13.6569 4.34315 15 6 15Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
@@ -242,6 +292,9 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
               <path d="M15.41 6.51L8.59 10.49" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </button>
+          {showCopiedMessage && (
+            <div className="copied-message">Link copied!</div>
+          )}
         </div>
         <button className="action-button" aria-label="Save">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none">

@@ -99,6 +99,46 @@
   background: #000;
   max-height: 614px;
   overflow: hidden;
+  user-select: none;
+}
+
+/* Like Animation */
+.like-animation {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  animation: likeHeart 0.8s ease-in-out;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.like-animation svg {
+  width: 80px;
+  height: 80px;
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.3));
+}
+
+@keyframes likeHeart {
+  0% {
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+  }
+  15% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  45%, 80% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
 }
 
 .post-image {
@@ -170,6 +210,32 @@
 .actions-left {
   display: flex;
   gap: 16px;
+  position: relative;
+}
+
+/* Copied Message */
+.copied-message {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  margin-bottom: 8px;
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0%, 100% {
+    opacity: 0;
+  }
+  10%, 90% {
+    opacity: 1;
+  }
 }
 
 .action-button {
@@ -195,6 +261,8 @@
 /* Content */
 .post-content {
   padding: 0 16px 12px;
+  user-select: none;
+  cursor: pointer;
 }
 
 .post-text {
