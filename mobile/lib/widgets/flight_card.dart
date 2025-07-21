@@ -53,10 +53,13 @@ class FlightCard extends StatelessWidget {
 
     return Card(
       elevation: 2,
-      child: InkWell(
+      child: GestureDetector(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,7 +124,7 @@ class FlightCard extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: _getStatusColor().withOpacity(0.1),
+                          color: _getStatusColor().withAlpha(25),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -301,6 +304,7 @@ class FlightCard extends StatelessWidget {
               ],
             ],
           ),
+        ),
         ),
       ),
     );
