@@ -11,6 +11,7 @@ import '../../data/graphql/post_queries.dart';
 import 'create_post_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/like_button.dart';
+import '../../../../widgets/avatar.dart';
 
 class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key});
@@ -46,63 +47,10 @@ class FeedScreen extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.grey[200],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: user?.avatar != null && user!.avatar!.isNotEmpty
-                  ? Image.network(
-                      user!.avatar!,
-                      fit: BoxFit.cover,
-                      width: 40,
-                      height: 40,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.mediumPurple,
-                                AppColors.periwinkle,
-                              ],
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              _getUserInitials(user),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    )
-                  : Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.mediumPurple,
-                            AppColors.periwinkle,
-                          ],
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _getUserInitials(user),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
+            Avatar(
+              imageUrl: user?.avatar,
+              name: user?.fullName ?? user?.username ?? 'User',
+              size: 40,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -321,50 +269,10 @@ class FeedScreen extends StatelessWidget {
                           child: Row(
                             children: [
                               // Avatar
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.grey[200],
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: post['author']['avatar'] != null && post['author']['avatar'].toString().isNotEmpty
-                                  ? Image.network(
-                                      post['author']['avatar'],
-                                      fit: BoxFit.cover,
-                                      width: 40,
-                                      height: 40,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        // Fall back to initials on error
-                                        return Container(
-                                          color: _getAvatarColor(post['author']['avatar']),
-                                          child: Center(
-                                            child: Text(
-                                              _getInitials(post['author']),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Container(
-                                      color: _getAvatarColor(post['author']['avatar']),
-                                      child: Center(
-                                        child: Text(
-                                          _getInitials(post['author']),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                              Avatar(
+                                imageUrl: post['author']['avatar'],
+                                name: post['author']['fullName'] ?? post['author']['username'] ?? 'User',
+                                size: 40,
                               ),
                               const SizedBox(width: 12),
                               // Username and time
@@ -630,47 +538,6 @@ class FeedScreen extends StatelessWidget {
     }
   }
   
-  String _getInitials(dynamic author) {
-    if (author == null) return 'U';
-    
-    final fullName = author['fullName'] ?? author['username'] ?? 'User';
-    final names = fullName.toString().split(' ');
-    
-    if (names.length > 1) {
-      return '${names[0][0]}${names[names.length - 1][0]}'.toUpperCase();
-    }
-    return fullName.toString()[0].toUpperCase();
-  }
-  
-  String _getUserInitials(dynamic user) {
-    if (user == null) return 'U';
-    
-    final fullName = user.fullName ?? user.username ?? 'User';
-    final names = fullName.toString().split(' ');
-    
-    if (names.length > 1) {
-      return '${names[0][0]}${names[names.length - 1][0]}'.toUpperCase();
-    }
-    return fullName.toString()[0].toUpperCase();
-  }
-  
-  Color _getAvatarColor(String? avatarUrl) {
-    if (avatarUrl == null || avatarUrl.isEmpty) {
-      return AppColors.mediumPurple;
-    }
-    
-    // Try to extract color from ui-avatars URL
-    final backgroundMatch = RegExp(r'background=([a-fA-F0-9]{6})').firstMatch(avatarUrl);
-    if (backgroundMatch != null) {
-      final colorHex = backgroundMatch.group(1);
-      if (colorHex != null) {
-        return Color(int.parse('FF$colorHex', radix: 16));
-      }
-    }
-    
-    // Default fallback color
-    return AppColors.mediumPurple;
-  }
 }
 
 // Custom painter for circular comment icon (matches web)

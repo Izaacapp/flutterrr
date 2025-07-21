@@ -4,6 +4,7 @@ import '../services/location_service.dart';
 import '../services/auth_service.dart';
 import '../services/flight_service.dart';
 import '../services/pexels_service.dart';
+import '../widgets/avatar.dart';
 
 class SearchPage extends StatefulWidget {
   const SearchPage({super.key});
@@ -151,43 +152,10 @@ class _SearchPageState extends State<SearchPage> {
                   // User Profile Section
                   Row(
                     children: [
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Theme.of(context).primaryColor.withAlpha(25),
-                        ),
-                        child: user?.avatar != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(25),
-                                child: Image.network(
-                                  user!.avatar!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Center(
-                                      child: Text(
-                                        user.username[0].toUpperCase(),
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Theme.of(context).primaryColor,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              )
-                            : Center(
-                                child: Text(
-                                  user?.username[0].toUpperCase() ?? 'U',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).primaryColor,
-                                  ),
-                                ),
-                              ),
+                      Avatar(
+                        imageUrl: user?.avatar,
+                        name: user?.fullName ?? user?.username ?? 'User',
+                        size: 50,
                       ),
                       const SizedBox(width: 12),
                       Expanded(

@@ -4,7 +4,7 @@ import 'package:graphql_flutter/graphql_flutter.dart';
 import '../../data/graphql/post_queries.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/auth_provider.dart';
-import '../../../../core/theme/app_theme.dart';
+import '../../../../widgets/avatar.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -17,33 +17,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final TextEditingController _controller = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   
-  Color _getAvatarColor(String? avatarUrl) {
-    if (avatarUrl == null || avatarUrl.isEmpty) {
-      return AppColors.mediumPurple;
-    }
-    
-    final backgroundMatch = RegExp(r'background=([a-fA-F0-9]{6})').firstMatch(avatarUrl);
-    if (backgroundMatch != null) {
-      final colorHex = backgroundMatch.group(1);
-      if (colorHex != null) {
-        return Color(int.parse('FF$colorHex', radix: 16));
-      }
-    }
-    
-    return AppColors.mediumPurple;
-  }
-  
-  String _getUserInitials(dynamic user) {
-    if (user == null) return 'U';
-    
-    final fullName = user.fullName ?? user.username ?? 'User';
-    final names = fullName.toString().split(' ');
-    
-    if (names.length > 1) {
-      return '${names[0][0]}${names[names.length - 1][0]}'.toUpperCase();
-    }
-    return fullName.toString()[0].toUpperCase();
-  }
 
   @override
   void initState() {
@@ -152,49 +125,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       children: [
                         Column(
                           children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.grey[200],
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: user?.avatar != null && user!.avatar!.isNotEmpty
-                                  ? Image.network(
-                                      user!.avatar!,
-                                      fit: BoxFit.cover,
-                                      width: 40,
-                                      height: 40,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return Container(
-                                          color: _getAvatarColor(user.avatar),
-                                          child: Center(
-                                            child: Text(
-                                              _getUserInitials(user),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Container(
-                                      color: _getAvatarColor(user?.avatar),
-                                      child: Center(
-                                        child: Text(
-                                          _getUserInitials(user),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                            Avatar(
+                              imageUrl: user?.avatar,
+                              name: user?.fullName ?? user?.username ?? 'User',
+                              size: 40,
                             ),
                             const SizedBox(height: 8),
                             Container(

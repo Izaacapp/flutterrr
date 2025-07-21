@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/api/api_config.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../widgets/avatar.dart';
 
 class CreatePostScreenWithImages extends StatefulWidget {
   const CreatePostScreenWithImages({super.key});
@@ -200,20 +201,10 @@ class _CreatePostScreenWithImagesState extends State<CreatePostScreenWithImages>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // User Avatar
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Colors.grey[300],
-                      backgroundImage: user?.avatar != null
-                          ? NetworkImage(user!.avatar!)
-                          : null,
-                      child: user?.avatar == null
-                          ? Text(
-                              (user?.username?.isNotEmpty == true 
-                                  ? user!.username!.substring(0, 1).toUpperCase() 
-                                  : 'U'),
-                              style: const TextStyle(fontSize: 18),
-                            )
-                          : null,
+                    Avatar(
+                      imageUrl: user?.avatar,
+                      name: user?.fullName ?? user?.username ?? 'User',
+                      size: 40,
                     ),
                     const SizedBox(width: 12),
                     
