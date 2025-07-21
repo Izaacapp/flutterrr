@@ -12,9 +12,212 @@ import 'create_post_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/like_button.dart';
 import '../../../../widgets/avatar.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
 
 class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key});
+
+  void _sharePost(BuildContext context, Map<String, dynamic> post) async {
+    final String postId = post['_id'] ?? '';
+    final String username = post['author']?['username'] ?? 'user';
+    final String content = post['content'] ?? '';
+    
+    // Create post URL matching web implementation
+    const String baseUrl = 'https://xbullet.me';
+    final String postUrl = '$baseUrl/post/$postId';
+    
+    // Show share options bottom sheet
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Title
+                Text(
+                  'Share Post',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Share options
+                _buildShareOption(
+                  icon: Icons.share,
+                  title: 'Share via...',
+                  subtitle: 'Share using other apps',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    try {
+                      await Share.share(
+                        postUrl,
+                        subject: 'Post by $username',
+                      );
+                    } catch (e) {
+                      print('Error sharing: $e');
+                    }
+                  },
+                ),
+                
+                _buildShareOption(
+                  icon: Icons.link,
+                  title: 'Copy Link',
+                  subtitle: 'Copy post link to clipboard',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    try {
+                      await Clipboard.setData(ClipboardData(text: postUrl));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Link copied!'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      print('Failed to copy link: $e');
+                    }
+                  },
+                ),
+                
+                _buildShareOption(
+                  icon: Icons.content_copy,
+                  title: 'Copy Text',
+                  subtitle: 'Copy post content',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    try {
+                      await Clipboard.setData(ClipboardData(text: content));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Text copied!'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      print('Failed to copy text: $e');
+                    }
+                  },
+                ),
+                
+                const SizedBox(height: 8),
+                
+                // Cancel button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: AppColors.mediumPurple,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildShareOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.ultraLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.mediumPurple,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: Colors.grey[400],
+              size: 24,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildCreatePostTrigger(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -479,7 +682,7 @@ class FeedScreen extends StatelessWidget {
                             IconButton(
                               icon: const Icon(Icons.share_outlined, color: AppColors.mediumPurple),
                               onPressed: () {
-                                // TODO: Implement share functionality
+                                _sharePost(context, post);
                               },
                             ),
                             const Spacer(),
