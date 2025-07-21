@@ -4,14 +4,19 @@ import { OTPVerification } from './components/auth/OTPVerification';
 import { NavigationHeader } from './components/navigation/NavigationHeader';
 import RightSidebar from './components/layout/RightSidebar';
 import { useAuth } from './contexts/AuthContext';
+import { useGlobalPreloader } from './hooks/useGlobalPreloader';
 import { Home } from './pages/Home';
 import { Flights } from './pages/Flights';
 import { Profile } from './pages/Profile';
 import { Search } from './pages/Search';
+import { Explore } from './pages/Explore';
+import { Earth } from './pages/Earth';
 import { Notifications } from './pages/Notifications';
 import { StressTestPanel } from './components/dev/StressTestPanel';
 
 const AppContent: React.FC = () => {
+  // Start preloading resources in background
+  const preloaderState = useGlobalPreloader();
   
   return (
     <div style={{ backgroundColor: 'var(--pb-background)', minHeight: '100vh' }}>
@@ -21,6 +26,8 @@ const AppContent: React.FC = () => {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/search" element={<Search />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/earth" element={<Earth />} />
             <Route path="/flights" element={<Flights />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/profile" element={<Profile />} />

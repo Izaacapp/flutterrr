@@ -1,8 +1,10 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 export const NavigationHeader: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -47,7 +49,13 @@ export const NavigationHeader: React.FC = () => {
         </Link>
         
         {/* Search Bar */}
-        <Link to="/search" style={{
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (searchQuery.trim()) {
+            navigate(`/explore?location=${encodeURIComponent(searchQuery)}`);
+            setSearchQuery('');
+          }
+        }} style={{
           display: 'flex',
           alignItems: 'center',
           gap: '0.375rem',
@@ -56,16 +64,27 @@ export const NavigationHeader: React.FC = () => {
           borderRadius: '16px',
           border: '1px solid var(--pb-light-periwinkle)',
           minWidth: '200px',
-          textDecoration: 'none',
-          color: 'var(--pb-medium-purple)',
           fontSize: '0.813rem'
         }}>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="11" cy="11" r="8"/>
             <path d="m21 21-4.35-4.35"/>
           </svg>
-          <span>Search friends, destinations...</span>
-        </Link>
+          <input
+            type="text"
+            placeholder="Search friends, destinations..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              border: 'none',
+              outline: 'none',
+              backgroundColor: 'transparent',
+              color: 'var(--pb-dark-purple)',
+              fontSize: '0.813rem',
+              width: '100%'
+            }}
+          />
+        </form>
         
         <nav style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
           <Link to="/" style={navButtonStyle('/')}>
@@ -86,10 +105,11 @@ export const NavigationHeader: React.FC = () => {
             </svg>
           </Link>
           
-          <Link to="/search" style={navButtonStyle('/search')}>
+          <Link to="/earth" style={navButtonStyle('/earth')}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
             </svg>
           </Link>
           

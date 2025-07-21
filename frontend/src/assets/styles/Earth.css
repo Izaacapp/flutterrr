@@ -1,0 +1,174 @@
+.earth-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px);
+  background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 50%, #ede9fe 100%);
+  color: var(--pb-dark-purple);
+  position: relative;
+  overflow: hidden;
+}
+
+.earth-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--pb-border);
+  z-index: 10;
+}
+
+.earth-header h1 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--pb-dark-purple);
+}
+
+.earth-stats {
+  display: flex;
+  gap: 2rem;
+}
+
+.earth-stats .stat {
+  text-align: center;
+}
+
+.earth-stats .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #a78bfa; /* Lighter purple */
+}
+
+.earth-stats .stat-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+.earth-canvas {
+  flex: 1;
+  width: 100%;
+  min-height: 0; /* Important for flexbox */
+  position: relative;
+  overflow: hidden;
+}
+
+.flight-list {
+  position: absolute;
+  top: 100px;
+  right: 2rem;
+  width: 300px;
+  max-height: 60vh;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  border: 1px solid var(--pb-light-periwinkle);
+  box-shadow: 0 4px 24px rgba(139, 92, 246, 0.1);
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.flight-list h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--pb-dark-purple);
+}
+
+.flight-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.flight-item {
+  background: var(--pb-ultra-light);
+  border: 1px solid var(--pb-light-periwinkle);
+  border-radius: 12px;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.flight-item:hover {
+  background: var(--pb-light-purple);
+  border-color: var(--pb-medium-purple);
+  transform: translateX(-4px);
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
+}
+
+.flight-item.selected {
+  background: var(--pb-light-purple);
+  border-color: var(--pb-dark-purple);
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.2);
+}
+
+.flight-route {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--pb-dark-purple);
+  margin-bottom: 0.25rem;
+}
+
+.flight-details {
+  font-size: 0.75rem;
+  color: var(--pb-medium-purple);
+}
+
+/* Custom scrollbar */
+.flight-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.flight-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.flight-list::-webkit-scrollbar-thumb {
+  background: var(--pb-light-purple);
+  border-radius: 3px;
+}
+
+.flight-list::-webkit-scrollbar-thumb:hover {
+  background: var(--pb-medium-purple);
+}
+
+/* Loading state */
+.flight-list p {
+  color: var(--pb-medium-purple);
+  font-size: 0.875rem;
+}
+
+/* Loading animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .earth-header {
+    padding: 1rem;
+  }
+
+  .earth-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .flight-list {
+    position: static;
+    width: 100%;
+    max-height: 200px;
+    margin: 0;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+}

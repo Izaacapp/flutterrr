@@ -10,16 +10,17 @@ interface ParsedBoardingPass {
     airportCode: string;
     city?: string;
     country?: string;
+    gate?: string;
   };
   destination: {
     airportCode: string;
     city?: string;
     country?: string;
+    gate?: string;
   };
   scheduledDepartureTime: Date;
   scheduledArrivalTime: Date;
   seatNumber?: string;
-  seatClass?: string;
   boardingGroup?: string;
   barcode?: {
     type: string;
@@ -119,7 +120,9 @@ function extractStructuredData(text: string): ParsedBoardingPass | null {
       flight: /(?:FLIGHT|FLT|FL)\s*(?:NUMBER|NO|#)?[:\s]*([A-Z]{2,3}\s*\d{1,4}[A-Z]?)/i,
       date: /(?:DATE|ON)[:\s]*(\d{1,2}\s*(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s*\d{2,4})/i,
       time: /(?:TIME|DEPART|DEPARTURE)[:\s]*(\d{1,2}:\d{2})/i,
-      gate: /GATE[:\s]*([A-Z0-9]+)/i,
+      gate: /(?:GATE|GT|G)[:\s]*([A-Z0-9]+)/i,
+      departureGate: /(?:DEPARTURE\s*GATE|DEP\s*GATE|FROM\s*GATE)[:\s]*([A-Z0-9]+)/i,
+      arrivalGate: /(?:ARRIVAL\s*GATE|ARR\s*GATE|TO\s*GATE)[:\s]*([A-Z0-9]+)/i,
       seat: /SEAT[:\s]*(\d{1,3}[A-Z])/i,
       boardingTime: /BOARDING\s*(?:TILL|TIME|BY)?[:\s]*(\d{1,2}:\d{2})/i,
       arrivalTime: /(?:ARRIVAL|ARRIVE)\s*(?:TIME)?[:\s]*(\d{1,2}:\d{2})/i,
@@ -197,18 +200,19 @@ function extractStructuredData(text: string): ParsedBoardingPass | null {
         origin: {
           airportCode: originCode,
           city: data.from?.replace(originCode, '').trim() || originCode,
-          country: 'USA'
+          country: 'USA',
+          gate: data.departureGate || data.gate || undefined
         },
         destination: {
           airportCode: destCode,
           city: data.to?.replace(destCode, '').trim() || destCode,
-          country: 'USA'
+          country: 'USA',
+          gate: data.arrivalGate || undefined
         },
         scheduledDepartureTime: parseFlightDateTime(data.date, data.time),
         scheduledArrivalTime: parseFlightDateTime(data.date, data.arrivalTime || data.time),
         seatNumber: data.seat,
-        seatClass: detectSeatClass(text),
-        boardingGroup: data.gate
+        boardingGroup: data.boardingGroup || data.zone || ''
       };
     }
   } catch (error) {
@@ -267,12 +271,6 @@ function parseFlightDateTime(dateStr?: string, timeStr?: string): Date {
 }
 
 // Helper to detect seat class from text
-function detectSeatClass(text: string): string {
-  if (/FIRST\s*CLASS/i.test(text)) return 'First';
-  if (/BUSINESS\s*CLASS/i.test(text)) return 'Business';
-  if (/PREMIUM\s*ECONOMY/i.test(text)) return 'Premium Economy';
-  return 'Economy';
-}
 
 // Helper to get airline from code
 function getAirlineFromCode(code: string): string {
@@ -329,9 +327,6 @@ async function extractBoardingPassData(text: string): Promise<ParsedBoardingPass
         lexicalData.destination.city = destInfo.city || lexicalData.destination.city;
         lexicalData.destination.country = destInfo.country || lexicalData.destination.country;
       }
-      
-      // Detect seat class
-      lexicalData.seatClass = detectSeatClass(normalizedText);
       
       return lexicalData;
     }
@@ -509,13 +504,6 @@ async function extractBoardingPassData(text: string): Promise<ParsedBoardingPass
     }
   }
 
-  // Class detection - check multiple variations
-  let seatClass = 'Economy';
-  if (normalizedText.match(/FIRST\s*CLASS|FIRST|1ST\s*CLASS/)) seatClass = 'First';
-  else if (normalizedText.match(/BUSINESS\s*CLASS|BUSINESS|BUS\s*CLASS/)) seatClass = 'Business';
-  else if (normalizedText.match(/PREMIUM\s*ECONOMY|PREM\s*ECON|PREMIUM/)) seatClass = 'Premium Economy';
-  else if (normalizedText.match(/ECONOMY|ECON|COACH/)) seatClass = 'Economy';
-
   // Boarding group/zone
   let boardingGroup = '';
   const boardingPatterns = [
@@ -537,8 +525,7 @@ async function extractBoardingPassData(text: string): Promise<ParsedBoardingPass
     confirmationCode,
     origin: originCode,
     destination: destCode,
-    seat: seatNumber,
-    class: seatClass
+    seat: seatNumber
   });
 
   return {
@@ -556,7 +543,6 @@ async function extractBoardingPassData(text: string): Promise<ParsedBoardingPass
     scheduledDepartureTime: dateMatches.length > 0 ? parseDateFromMatch(dateMatches[0]) : new Date(),
     scheduledArrivalTime: dateMatches.length > 1 ? parseDateFromMatch(dateMatches[1]) : new Date(),
     seatNumber,
-    seatClass: seatClass as any,
     boardingGroup
   };
 }

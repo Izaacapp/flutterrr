@@ -22,6 +22,7 @@
   gap: 0.75rem;
 }
 
+.camera-btn,
 .upload-pass-btn,
 .manual-entry-btn {
   padding: 0.5rem 1rem;
@@ -31,6 +32,23 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.camera-btn {
+  background-color: #8B5CF6;
+  color: white;
+  padding: 0.5rem;
+  width: 36px;
+  height: 36px;
+  justify-content: center;
+}
+
+.camera-btn:hover:not(:disabled) {
+  background-color: #7C3AED;
+  transform: translateY(-1px);
 }
 
 .upload-pass-btn {
@@ -162,6 +180,7 @@
   padding: 1.5rem;
   margin-bottom: 0.75rem;
   transition: all 0.2s;
+  position: relative;
 }
 
 .flight-card:hover {
@@ -292,6 +311,47 @@
   font-size: 0.813rem;
   color: #4B5563;
   font-weight: 500;
+}
+
+/* Flight Card Actions */
+.flight-actions {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-btn,
+.delete-btn {
+  padding: 0.375rem;
+  border: none;
+  border-radius: 8px;
+  background-color: #F3F4F6;
+  color: #6B7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.edit-btn:hover {
+  background-color: #E5E7EB;
+  color: #8B5CF6;
+}
+
+.delete-btn:hover {
+  background-color: #FEE2E2;
+  color: #EF4444;
+}
+
+.flights-actions .icon,
+.flight-actions .icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* Responsive */

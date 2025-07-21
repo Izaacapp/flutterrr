@@ -29,7 +29,6 @@ export interface Flight {
   actualDepartureTime?: string;
   actualArrivalTime?: string;
   seatNumber?: string;
-  seatClass: 'Economy' | 'Premium Economy' | 'Business' | 'First';
   boardingGroup?: string;
   distance?: number;
   duration?: number;
@@ -157,6 +156,24 @@ class FlightService {
     }
 
     return response.json();
+  }
+
+  async updateFlight(flightId: string, updates: Partial<Flight>): Promise<Flight> {
+    const response = await fetch(`${API_URL}/flights/${flightId}`, {
+      method: 'PUT',
+      headers: {
+        ...this.getAuthHeaders(),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update flight');
+    }
+
+    const data = await response.json();
+    return data.flight;
   }
 
   async updateFlightStatus(flightId: string, status: Flight['status']): Promise<Flight> {

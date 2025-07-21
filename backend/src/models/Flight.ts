@@ -36,7 +36,6 @@ export interface IFlight extends Document {
   
   // Seat info
   seatNumber?: string;
-  seatClass: 'Economy' | 'Premium Economy' | 'Business' | 'First';
   boardingGroup?: string;
   
   // Flight stats
@@ -139,11 +138,6 @@ const flightSchema = new Schema<IFlight>({
   actualArrivalTime: Date,
   
   seatNumber: String,
-  seatClass: {
-    type: String,
-    enum: ['Economy', 'Premium Economy', 'Business', 'First'],
-    default: 'Economy'
-  },
   boardingGroup: String,
   
   distance: Number,
@@ -185,22 +179,9 @@ flightSchema.virtual('durationInHours').get(function() {
 flightSchema.methods.calculatePoints = function() {
   if (!this.distance) return 0;
   
-  let multiplier = 1;
-  switch (this.seatClass) {
-    case 'First':
-      multiplier = 3;
-      break;
-    case 'Business':
-      multiplier = 2;
-      break;
-    case 'Premium Economy':
-      multiplier = 1.5;
-      break;
-    default:
-      multiplier = 1;
-  }
-  
-  return Math.round(this.distance * multiplier);
+  // Base points equal to miles traveled
+  // Could add multipliers based on airline status or other factors in the future
+  return Math.round(this.distance);
 };
 
 const Flight = model<IFlight>('Flight', flightSchema);
