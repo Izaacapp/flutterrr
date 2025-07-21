@@ -77,7 +77,10 @@ class PhotoSrc {
 }
 
 class PexelsService {
-  static const String apiKey = 'GAbObNkJoksVvDYm1iJiBaYeDMEHyCsXb5u70nYZ5J87Zv8HXrGqfh1x';
+  static const String apiKey = String.fromEnvironment(
+    'PEXELS_API_KEY',
+    defaultValue: ''
+  );
   static const String baseUrl = 'https://api.pexels.com/v1';
   
   final SharedPreferences? _prefs;
@@ -91,6 +94,12 @@ class PexelsService {
 
   Future<List<PexelsPhoto>> searchLocationPhotos(String location, {int perPage = 10}) async {
     try {
+      // Check if API key is available
+      if (apiKey.isEmpty) {
+        AppLogger.warning('Pexels API key not found. Please set PEXELS_API_KEY environment variable.');
+        return [];
+      }
+
       // Check cache first
       final cacheKey = _getCacheKey(location);
       final cached = _prefs?.getString(cacheKey);
