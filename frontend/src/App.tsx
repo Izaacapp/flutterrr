@@ -9,6 +9,7 @@ import { Flights } from './pages/Flights';
 import { Profile } from './pages/Profile';
 import { Search } from './pages/Search';
 import { Notifications } from './pages/Notifications';
+import { StressTestPanel } from './components/dev/StressTestPanel';
 
 const AppContent: React.FC = () => {
   
@@ -30,6 +31,9 @@ const AppContent: React.FC = () => {
         {/* Right Sidebar for desktop */}
         <RightSidebar />
       </div>
+      
+      {/* Stress Test Panel for development */}
+      <StressTestPanel />
     </div>
   );
 };

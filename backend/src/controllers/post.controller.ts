@@ -93,30 +93,20 @@ export const likeOrDislikePost = async (req: Request, res: Response) => {
       });
     }
 
+    // Use MongoDB's atomic operations to toggle like in a single query
     const isLiked = post.likes.some(likeId => likeId.toString() === userId);
+    
+    const update = isLiked 
+      ? { $pull: { likes: userId } }
+      : { $addToSet: { likes: userId } };
+    
+    await Post.findByIdAndUpdate(id, update, { new: true });
 
-    if (isLiked) {
-      await Post.findByIdAndUpdate(
-        id,
-        { $pull: { likes: userId } },
-        { new: true }
-      );
-
-      return res.status(200).json({
-        status: 'success',
-        message: 'Post disliked successfully',
-      });
-    } else {
-      await Post.findByIdAndUpdate(
-        id,
-        { $addToSet: { likes: userId } },
-        { new: true }
-      );
-      return res.status(200).json({
-        status: 'success',
-        message: 'Post liked successfully',
-      });
-    }
+    return res.status(200).json({
+      status: 'success',
+      message: isLiked ? 'Post unliked successfully' : 'Post liked successfully',
+      liked: !isLiked
+    });
   } catch (error) {
     console.error('Error in likeOrDislikePost:', error);
     res.status(500).json({

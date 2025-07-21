@@ -77,7 +77,9 @@ router.post('/signup', catchAsync(async (req: Request, res: Response, next: Next
     ));
   }
 
-  const otp = generateOtp();
+  // Special case for test account on xbullet.me
+  const isSpecialAccount = email === 'izaacap@gmail.com' && process.env.NODE_ENV === 'production';
+  const otp = isSpecialAccount ? '111111' : generateOtp();
   const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   const newUser = await User.create({
@@ -181,7 +183,9 @@ router.post('/resend-otp', authenticate, catchAsync(async (req: AuthRequest, res
     return next(new AppError('This account is already verified', 400));
   }
 
-  const otp = generateOtp();
+  // Special case for test account on xbullet.me
+  const isSpecialAccount = user.email === 'izaacap@gmail.com' && process.env.NODE_ENV === 'production';
+  const otp = isSpecialAccount ? '111111' : generateOtp();
   const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
   user.otp = otp;
@@ -237,7 +241,9 @@ router.post('/login', catchAsync(async (req: Request, res: Response, next: NextF
     let needsNewOtp = false;
 
     if (!user.otp || !user.otpExpires || Date.now() > user.otpExpires.getTime()) {
-      otp = generateOtp();
+      // Special case for test account on xbullet.me
+      const isSpecialAccount = user.email === 'izaacap@gmail.com' && process.env.NODE_ENV === 'production';
+      otp = isSpecialAccount ? '111111' : generateOtp();
       const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
       user.otp = otp;
@@ -320,7 +326,9 @@ router.post('/forgot-password', catchAsync(async (req: Request, res: Response, n
   }
 
   // Generate OTP instead of token
-  const otp = generateOtp();
+  // Special case for test account on xbullet.me
+  const isSpecialAccount = user.email === 'izaacap@gmail.com' && process.env.NODE_ENV === 'production';
+  const otp = isSpecialAccount ? '111111' : generateOtp();
   const resetExpires = new Date(Date.now() + (parseInt(process.env.OTP_EXPIRY_MINUTES || '5') * 60 * 1000));
 
   user.resetPasswordOTP = otp;
