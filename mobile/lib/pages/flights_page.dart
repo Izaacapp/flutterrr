@@ -6,6 +6,7 @@ import '../services/flight_service.dart';
 import '../models/flight_model.dart';
 import '../widgets/flight_card.dart';
 import '../widgets/flight_form.dart';
+import '../widgets/flight_edit_form.dart';
 
 class FlightsPage extends StatefulWidget {
   const FlightsPage({super.key});
@@ -127,6 +128,62 @@ class _FlightsPageState extends State<FlightsPage> with TickerProviderStateMixin
     }
   }
 
+  void _showEditFlightDialog(Flight flight) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => FlightEditForm(
+        flight: flight,
+        onFlightUpdated: (updatedFlight) {
+          Navigator.pop(context);
+          _loadFlights();
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteFlight(Flight flight) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Flight'),
+        content: Text('Are you sure you want to delete flight ${flight.airline} ${flight.flightNumber}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.red,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _flightService.deleteFlight(flight.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Flight deleted successfully')),
+          );
+          _loadFlights();
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error deleting flight: ${e.toString()}')),
+          );
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -230,6 +287,8 @@ class _FlightsPageState extends State<FlightsPage> with TickerProviderStateMixin
               onTap: () {
                 // TODO: Navigate to flight details
               },
+              onEdit: () => _showEditFlightDialog(flights[index]),
+              onDelete: () => _deleteFlight(flights[index]),
             ),
           );
         },
