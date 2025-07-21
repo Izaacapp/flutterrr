@@ -27,7 +27,7 @@ services:
   backend:
     container_name: mern_flutter_backend
     build:
-      context: .
+      context: ../..
       dockerfile: ./backend/Dockerfile.dev
     volumes:
       - ./backend/src:/app/backend/src
@@ -70,7 +70,7 @@ services:
   frontend:
     container_name: mern_flutter_frontend
     build:
-      context: .
+      context: ../..
       dockerfile: ./frontend/Dockerfile.dev
     volumes:
       - ./frontend/src:/app/frontend/src
