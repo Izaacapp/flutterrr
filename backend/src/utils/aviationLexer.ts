@@ -91,7 +91,7 @@ export class AviationLexer {
     FLIGHT_NUMBER: /\b([A-Z]{2}|[A-Z]\d|\d[A-Z])\s*(\d{1,4}[A-Z]?)\b/g,
     TIME: /\b(\d{1,2}):(\d{2})(?:\s*(AM|PM|A|P))?\b/g,
     DATE: /\b(\d{1,2})\s*(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s*(\d{2,4})?\b/g,
-    GATE: /\b(?:GATE|GT)\s*([A-Z]?\d{1,3}[A-Z]?)\b/gi,
+    GATE: /(?:GATE|GT|G)\s*[:#]?\s*([A-Z]?\d{1,3}[A-Z]?)\b/gi,
     SEAT: /\b(\d{1,3}[A-FHJK])\b/g,
     TERMINAL: /\b(?:TERMINAL|TERM)\s*([A-Z0-9]{1,2})\b/gi,
     CONFIRMATION: /\b([A-Z0-9]{5,7})\b/g,

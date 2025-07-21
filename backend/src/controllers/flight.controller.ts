@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Flight, { IFlight } from '../models/Flight';
 import { storageService } from '../services/storage.service';
 import { parseBoardingPass } from '../utils/boardingPassParser';
+import { parseBoardingPassV2, convertToLegacyFormat } from '../utils/boardingPassParserV2';
 import { calculateFlightDistance } from '../utils/distanceCalculator';
 
 export const uploadBoardingPass = async (req: Request, res: Response) => {
@@ -27,7 +28,18 @@ export const uploadBoardingPass = async (req: Request, res: Response) => {
     const boardingPassUrl = uploadResult.url;
 
     // Parse boarding pass data (OCR or PDF parsing)
-    const parsedData = await parseBoardingPass(file.buffer, file.mimetype);
+    // Try new parser first
+    let parsedData = null;
+    const v2Result = await parseBoardingPassV2(file.buffer, file.mimetype);
+    
+    if (v2Result) {
+      console.log('V2 Parser succeeded - Gate found:', v2Result.boardingInfo.gate);
+      parsedData = convertToLegacyFormat(v2Result);
+    } else {
+      // Fallback to old parser
+      console.log('V2 Parser failed, trying legacy parser');
+      parsedData = await parseBoardingPass(file.buffer, file.mimetype);
+    }
 
     if (!parsedData) {
       return res.status(400).json({ message: 'Could not parse boarding pass data' });
@@ -46,6 +58,12 @@ export const uploadBoardingPass = async (req: Request, res: Response) => {
 
     // Calculate points
     flight.points = flight.calculatePoints();
+    
+    // Check if the flight date has passed and mark as completed
+    const now = new Date();
+    if (flight.scheduledArrivalTime < now) {
+      flight.status = 'completed';
+    }
 
     await flight.save();
 
@@ -85,6 +103,12 @@ export const manualFlightEntry = async (req: Request, res: Response) => {
 
     // Calculate points
     flight.points = flight.calculatePoints();
+    
+    // Check if the flight date has passed and mark as completed
+    const now = new Date();
+    if (flight.scheduledArrivalTime < now) {
+      flight.status = 'completed';
+    }
 
     await flight.save();
 

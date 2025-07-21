@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { flightService, Flight, FlightStats } from '../services/flight.service';
 import { useToast } from '../contexts/ToastContext';
+import { FlightEditModal } from '../components/flights/FlightEditModal';
+import { FlightManualEntry } from '../components/flights/FlightManualEntry';
+import { CameraIcon, UploadIcon, PlusIcon, EditIcon, TrashIcon } from '../components/ui/Icons';
 import '../assets/styles/Flights.css';
 
 export const Flights: React.FC = () => {
@@ -11,7 +14,9 @@ export const Flights: React.FC = () => {
   const [uploadingPass, setUploadingPass] = useState(false);
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [selectedTab, setSelectedTab] = useState<'upcoming' | 'completed'>('upcoming');
+  const [editingFlight, setEditingFlight] = useState<Flight | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadFlights();
@@ -58,6 +63,35 @@ export const Flights: React.FC = () => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleUpdateFlight = async (flightId: string, updates: Partial<Flight>) => {
+    try {
+      const updatedFlight = await flightService.updateFlight(flightId, updates);
+      setFlights(flights.map(f => f._id === flightId ? updatedFlight : f));
+      showToast('Flight updated successfully', 'success');
+      loadStats();
+    } catch (error) {
+      console.error('Error updating flight:', error);
+      showToast('Failed to update flight', 'error');
+    }
+  };
+
+  const handleDeleteFlight = async (flightId: string) => {
+    if (!window.confirm('Are you sure you want to delete this flight?')) return;
+    
+    try {
+      await flightService.deleteFlight(flightId);
+      setFlights(flights.filter(f => f._id !== flightId));
+      showToast('Flight deleted successfully', 'success');
+      loadStats();
+    } catch (error) {
+      console.error('Error deleting flight:', error);
+      showToast('Failed to delete flight', 'error');
     }
   };
 
@@ -87,22 +121,39 @@ export const Flights: React.FC = () => {
         <h1>My Flights</h1>
         <div className="flights-actions">
           <button 
+            className="camera-btn"
+            onClick={() => cameraInputRef.current?.click()}
+            disabled={uploadingPass}
+          >
+            <CameraIcon className="icon" />
+          </button>
+          <button 
             className="upload-pass-btn"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploadingPass}
           >
-            {uploadingPass ? 'Uploading...' : 'Upload Boarding Pass'}
+            <UploadIcon className="icon" />
+            {uploadingPass ? 'Uploading...' : 'Upload'}
           </button>
           <button 
             className="manual-entry-btn"
             onClick={() => setShowManualEntry(!showManualEntry)}
           >
-            Add Manual Entry
+            <PlusIcon className="icon" />
+            Manual Entry
           </button>
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*,.pdf"
+            onChange={handleFileUpload}
+            style={{ display: 'none' }}
+          />
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
             onChange={handleFileUpload}
             style={{ display: 'none' }}
           />
@@ -151,10 +202,20 @@ export const Flights: React.FC = () => {
         ) : (
           <>
             {selectedTab === 'upcoming' && upcomingFlights.map(flight => (
-              <FlightCard key={flight._id} flight={flight} onUpdate={loadFlights} />
+              <FlightCard 
+                key={flight._id} 
+                flight={flight} 
+                onEdit={() => setEditingFlight(flight)}
+                onDelete={() => handleDeleteFlight(flight._id)}
+              />
             ))}
             {selectedTab === 'completed' && completedFlights.map(flight => (
-              <FlightCard key={flight._id} flight={flight} onUpdate={loadFlights} />
+              <FlightCard 
+                key={flight._id} 
+                flight={flight} 
+                onEdit={() => setEditingFlight(flight)}
+                onDelete={() => handleDeleteFlight(flight._id)}
+              />
             ))}
             {((selectedTab === 'upcoming' && upcomingFlights.length === 0) ||
               (selectedTab === 'completed' && completedFlights.length === 0)) && (
@@ -165,16 +226,41 @@ export const Flights: React.FC = () => {
           </>
         )}
       </div>
+      
+      {editingFlight && (
+        <FlightEditModal
+          flight={editingFlight}
+          isOpen={!!editingFlight}
+          onClose={() => setEditingFlight(null)}
+          onSave={async (updates) => {
+            await handleUpdateFlight(editingFlight._id, updates);
+            setEditingFlight(null);
+          }}
+        />
+      )}
+      
+      {showManualEntry && (
+        <FlightManualEntry
+          isOpen={showManualEntry}
+          onClose={() => setShowManualEntry(false)}
+          onSave={(flight) => {
+            setFlights([flight, ...flights]);
+            setShowManualEntry(false);
+            loadStats();
+          }}
+        />
+      )}
     </div>
   );
 };
 
 interface FlightCardProps {
   flight: Flight;
-  onUpdate: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-const FlightCard: React.FC<FlightCardProps> = ({ flight, onUpdate }) => {
+const FlightCard: React.FC<FlightCardProps> = ({ flight, onEdit, onDelete }) => {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -226,12 +312,12 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight, onUpdate }) => {
       
       <div className="flight-details">
         <div className="detail">
-          <span className="label">Seat:</span>
-          <span className="value">{flight.seatNumber || 'N/A'}</span>
+          <span className="label">Gate:</span>
+          <span className="value">{flight.origin.gate || 'TBD'}</span>
         </div>
         <div className="detail">
-          <span className="label">Class:</span>
-          <span className="value">{flight.seatClass}</span>
+          <span className="label">Seat:</span>
+          <span className="value">{flight.seatNumber || 'N/A'}</span>
         </div>
         {flight.points && (
           <div className="detail">
@@ -239,6 +325,15 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight, onUpdate }) => {
             <span className="value">{flight.points.toLocaleString()}</span>
           </div>
         )}
+      </div>
+      
+      <div className="flight-actions">
+        <button className="edit-btn" onClick={onEdit}>
+          <EditIcon className="icon" />
+        </button>
+        <button className="delete-btn" onClick={onDelete}>
+          <TrashIcon className="icon" />
+        </button>
       </div>
     </div>
   );
