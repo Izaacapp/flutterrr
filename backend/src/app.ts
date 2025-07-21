@@ -10,6 +10,7 @@ import postRoutes from './routes/v1/post.routes';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/v1/user.routes';
 import healthRoutes from './routes/health';
+import flightRoutes from './routes/v1/flight.routes';
 import { env } from './config/env';
 import errorHandler from './middleware/errorHandler';
 
@@ -76,6 +77,7 @@ app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/flights', flightRoutes);
 
 // --- Final Error Handler ---
 app.use(errorHandler);

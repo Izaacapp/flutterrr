@@ -101,3 +101,4 @@ export const processAndUploadAvatar = async (
 // Export configured multer middleware
 export const uploadImages = upload.array('images', 5); // Max 5 images per post
 export const uploadAvatar = upload.single('avatar'); // Single avatar image
+export const uploadSingle = upload.single('file'); // Generic single file upload
