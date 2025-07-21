@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import authService, { User, AuthResponse, OTPResponse } from '../services/auth.service';
+import { client } from '../main';
 
 interface AuthContextType {
   user: User | null;
@@ -48,6 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const response = await authService.login(emailOrUsername, password);
     if (response.status === 'success' && response.data?.user) {
       setUser(response.data.user);
+      // Reset Apollo cache to refetch all queries with new auth token
+      await client.resetStore();
     }
     return response;
   };
@@ -61,6 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const response = await authService.signup(username, email, password, fullName);
     if (response.status === 'success' && response.data?.user) {
       setUser(response.data.user);
+      // Reset Apollo cache to refetch all queries with new auth token
+      await client.resetStore();
     }
     return response;
   };
@@ -69,6 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const response = await authService.verifyAccount(otp);
     if (response.status === 'success' && response.data?.user) {
       setUser(response.data.user);
+      // Reset Apollo cache to refetch all queries with new auth token
+      await client.resetStore();
     }
     return response;
   };
@@ -80,6 +87,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     await authService.logout();
     setUser(null);
+    // Clear Apollo cache on logout
+    await client.clearStore();
   };
 
   const needsVerificationValue = user ? !user.emailVerified : false;

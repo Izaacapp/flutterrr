@@ -55,6 +55,24 @@ export const postService = {
 
     return response.json();
   },
+
+  async deletePost(postId: string): Promise<{ status: string; message: string }> {
+    const token = localStorage.getItem('passport_buddy_token');
+    
+    const response = await fetch(`${API_URL}/posts/${postId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to delete post');
+    }
+
+    return response.json();
+  },
 };
 
 export default postService;

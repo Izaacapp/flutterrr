@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { createPost, getPosts, likeOrDislikePost, addComment, deleteComment } from '../../controllers/post.controller';
+import { createPost, getPosts, likeOrDislikePost, addComment, deleteComment, deletePost } from '../../controllers/post.controller';
 import { validate, requestSchema } from '../../middleware/validation.middleware';
 import { uploadImages, processAndUploadImages } from '../../middleware/upload.middleware';
 import { authenticate } from '../../middleware/auth.middleware';
@@ -25,5 +25,8 @@ router.post('/:id/like', authenticate, likeOrDislikePost);
 // Comment endpoints
 router.post('/:id/comment', authenticate, addComment);
 router.delete('/:id/comment/:commentId', authenticate, deleteComment);
+
+// Delete post endpoint
+router.delete('/:id', authenticate, deletePost);
 
 export default router;

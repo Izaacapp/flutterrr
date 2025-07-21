@@ -8,6 +8,41 @@ const sendVerificationEmail = async (email, verificationToken, name) => {
     console.log("📧 From:", sender);
     console.log("📧 Verification code:", verificationToken);
 
+    // In development mode, create a mock email service
+    if (process.env.NODE_ENV === 'development' && !process.env.MAILTRAP_TOKEN) {
+        console.log('\n=================================');
+        console.log('📧 DEVELOPMENT MODE - EMAIL PREVIEW');
+        console.log('=================================');
+        console.log('To:', email);
+        console.log('Subject: Verify Your Email');
+        console.log('From:', sender.email);
+        console.log('---------------------------------');
+        console.log(`Hello ${name},\n`);
+        console.log('Your verification code is:\n');
+        console.log(`    🔐 ${verificationToken}\n`);
+        console.log('Enter this code on the verification page.');
+        console.log('This code expires in 15 minutes.');
+        console.log('=================================\n');
+        
+        // Create a development email file
+        const fs = require('fs');
+        const path = require('path');
+        const emailDir = path.join(__dirname, '../../dev-emails');
+        if (!fs.existsSync(emailDir)) {
+            fs.mkdirSync(emailDir, { recursive: true });
+        }
+        
+        const emailContent = VERIFICATION_EMAIL_TEMPLATE
+            .replace("{verificationCode}", verificationToken)
+            .replace("{name}", name);
+        
+        const filename = `verification_${Date.now()}_${email.replace('@', '_at_')}.html`;
+        fs.writeFileSync(path.join(emailDir, filename), emailContent);
+        console.log(`📧 Email saved to: backend/dev-emails/${filename}`);
+        
+        return; // Don't throw error in development
+    }
+
     try {
         const response = await mailtrapClient.send({
             from: sender,
@@ -21,19 +56,47 @@ const sendVerificationEmail = async (email, verificationToken, name) => {
         console.log("Email sent successfully:", response);
     } catch (error) {
         console.error("Error sending verification email:", error);
-        // In development, log the OTP instead of failing
-        if (process.env.NODE_ENV === 'development') {
-            console.log('📧 DEVELOPMENT MODE - Email would have been sent to:', email);
-            console.log('📧 Verification Code:', verificationToken);
-            console.log('📧 Name:', name);
-            return; // Don't throw error in development
-        }
         throw new Error(`Failed to send verification email: ${error}`);
     }
 };
 
 const sendPasswordResetOTP = async (email, otp, name) => {
     const recipient = [{ email }];
+
+    // In development mode, create a mock email service
+    if (process.env.NODE_ENV === 'development' && !process.env.MAILTRAP_TOKEN) {
+        console.log('\n=================================');
+        console.log('📧 DEVELOPMENT MODE - EMAIL PREVIEW');
+        console.log('=================================');
+        console.log('To:', email);
+        console.log('Subject: Password Reset Code');
+        console.log('From:', sender.email);
+        console.log('---------------------------------');
+        console.log(`Hello ${name},\n`);
+        console.log('Your password reset code is:\n');
+        console.log(`    🔐 ${otp}\n`);
+        console.log('Enter this code on the password reset page.');
+        console.log('This code expires in 5 minutes.');
+        console.log('=================================\n');
+        
+        // Create a development email file
+        const fs = require('fs');
+        const path = require('path');
+        const emailDir = path.join(__dirname, '../../dev-emails');
+        if (!fs.existsSync(emailDir)) {
+            fs.mkdirSync(emailDir, { recursive: true });
+        }
+        
+        const emailContent = PASSWORD_RESET_OTP_TEMPLATE
+            .replace("{verificationCode}", otp)
+            .replace("{name}", name);
+        
+        const filename = `password_reset_${Date.now()}_${email.replace('@', '_at_')}.html`;
+        fs.writeFileSync(path.join(emailDir, filename), emailContent);
+        console.log(`📧 Email saved to: backend/dev-emails/${filename}`);
+        
+        return; // Don't throw error in development
+    }
 
     try {
         const response = await mailtrapClient.send({

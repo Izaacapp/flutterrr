@@ -325,6 +325,7 @@ class AuthService {
   needsVerification(): boolean {
     return this.user ? !this.user.emailVerified : false;
   }
+
 }
 
 export default new AuthService();

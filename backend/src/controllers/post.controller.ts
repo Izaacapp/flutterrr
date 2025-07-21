@@ -242,3 +242,59 @@ export const deleteComment = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const deletePost = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const userId = req.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        status: 'error',
+        message: 'User not authenticated'
+      });
+    }
+
+    const post = await Post.findById(id);
+
+    if (!post) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Post not found'
+      });
+    }
+
+    // Check if the user is the author of the post
+    if (post.author.toString() !== userId) {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Not authorized to delete this post'
+      });
+    }
+
+    // Delete associated images from storage
+    if (post.images && post.images.length > 0) {
+      for (const image of post.images) {
+        try {
+          await storageService.delete(image.key);
+        } catch (deleteError) {
+          console.error('Failed to delete image:', deleteError);
+        }
+      }
+    }
+
+    await Post.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      status: 'success',
+      message: 'Post deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error in deletePost:', error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error in deletePost',
+      error: error instanceof Error ? error.message : 'An unknown error occurred'
+    });
+  }
+};
