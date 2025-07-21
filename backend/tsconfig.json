@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es2021",
     "module": "commonjs",
-    "rootDir": "./",
+    "rootDir": ".",
     "outDir": "./dist",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
@@ -10,7 +10,11 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "typeRoots": ["./node_modules/@types", "./src/types"],
-    "types": ["node", "express", "jest"]
+    "types": ["node", "express", "jest"],
+    "baseUrl": ".",
+    "paths": {
+      "@my-app/shared/*": ["../shared/*"]
+    }
   },
   "include": ["src/**/*", "test/**/*"],
   "files": ["./src/types/express/index.d.ts"],
