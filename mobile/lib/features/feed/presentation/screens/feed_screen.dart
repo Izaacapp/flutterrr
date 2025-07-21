@@ -10,6 +10,7 @@ import '../../../../services/post_service.dart';
 import '../../data/graphql/post_queries.dart';
 import 'create_post_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/like_button.dart';
 
 class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key});
@@ -304,13 +305,13 @@ class FeedScreen extends StatelessWidget {
                 
                 final post = posts[index - 1 - (posts.isEmpty ? 1 : 0)]; // Adjust index for posts and welcome message
                 return Card(
-                  margin: const EdgeInsets.all(8.0),
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppColors.lightPeriwinkle, width: 1),
-                  ),
-                  child: Column(
+                    margin: const EdgeInsets.all(8.0),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: AppColors.lightPeriwinkle, width: 1),
+                    ),
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Author Header
@@ -416,6 +417,30 @@ class FeedScreen extends StatelessWidget {
                                 final image = post['images'][imageIndex];
                                 print('Feed image URL: ${image['url']}');
                                 return GestureDetector(
+                                  onDoubleTap: () async {
+                                    // Double tap to like
+                                    final prefs = await SharedPreferences.getInstance();
+                                    final userJson = prefs.getString('passport_buddy_user');
+                                    if (userJson != null) {
+                                      final userData = jsonDecode(userJson);
+                                      final currentUserId = userData['id'];
+                                      final likes = post['likes'] as List? ?? [];
+                                      final likesList = likes.map((e) => e.toString()).toList();
+                                      final isLiked = likesList.contains(currentUserId);
+                                      
+                                      // Only like if not already liked
+                                      if (!isLiked) {
+                                        try {
+                                          await PostService.toggleLike(post['_id']);
+                                          if (refetch != null) {
+                                            refetch();
+                                          }
+                                        } catch (e) {
+                                          // Silent error handling for double tap
+                                        }
+                                      }
+                                    }
+                                  },
                                   onTap: () {
                                     // Debug: Print the image URL
                                     print('Opening image URL: ${image['url']}');
@@ -512,11 +537,8 @@ class FeedScreen extends StatelessWidget {
                                 final likesList = likes.map((e) => e.toString()).toList();
                                 final isLiked = currentUserId != null && likesList.contains(currentUserId);
                                 
-                                return IconButton(
-                                  icon: Icon(
-                                    isLiked ? Icons.favorite : Icons.favorite_border,
-                                    color: isLiked ? Colors.red : AppColors.mediumPurple,
-                                  ),
+                                return LikeButton(
+                                  isLiked: isLiked,
                                   onPressed: () async {
                                     try {
                                       await PostService.toggleLike(post['_id']);
