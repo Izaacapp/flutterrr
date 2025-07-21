@@ -54,8 +54,15 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
   const postDropdownRef = useRef<HTMLDivElement>(null);
   const hasImages = post.images && post.images.length > 0;
   const hasMultipleImages = post.images && post.images.length > 1;
-  const isLiked = currentUserId ? post.likes.includes(currentUserId) : false;
-  const likesCount = post.likes.length;
+  const [localIsLiked, setLocalIsLiked] = useState(currentUserId ? post.likes.includes(currentUserId) : false);
+  const [localLikesCount, setLocalLikesCount] = useState(post.likes.length);
+  const [isLiking, setIsLiking] = useState(false);
+
+  // Sync with props when they change (e.g., from polling)
+  useEffect(() => {
+    setLocalIsLiked(currentUserId ? post.likes.includes(currentUserId) : false);
+    setLocalLikesCount(post.likes.length);
+  }, [post.likes, currentUserId]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -113,13 +120,32 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
     return date.toLocaleDateString();
   };
 
+  const handleLikeClick = async () => {
+    if (isLiking || !onToggleLike || !currentUserId) return;
+    
+    // Instantly update UI
+    setLocalIsLiked(!localIsLiked);
+    setLocalLikesCount(localIsLiked ? localLikesCount - 1 : localLikesCount + 1);
+    setIsLiking(true);
+    
+    try {
+      await onToggleLike(post._id);
+    } catch (error) {
+      // Revert on error
+      setLocalIsLiked(localIsLiked);
+      setLocalLikesCount(localLikesCount);
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
   const handleDoubleTap = () => {
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
     
     if (now - lastTap < DOUBLE_TAP_DELAY) {
-      if (!isLiked && onToggleLike) {
-        onToggleLike(post._id);
+      if (!localIsLiked && !isLiking) {
+        handleLikeClick();
         setShowLikeAnimation(true);
         setTimeout(() => setShowLikeAnimation(false), 800);
       }
@@ -317,11 +343,12 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
           <button 
             className="action-button" 
             aria-label="Like"
-            onClick={() => onToggleLike && onToggleLike(post._id)}
+            onClick={handleLikeClick}
+            disabled={isLiking}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill={isLiked ? "#8b5cf6" : "none"}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill={localIsLiked ? "#8b5cf6" : "none"} className={isLiking ? "pending-like" : ""}>
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" 
-                stroke={isLiked ? "#8b5cf6" : "currentColor"} 
+                stroke={localIsLiked ? "#8b5cf6" : "currentColor"} 
                 strokeWidth="2" 
                 strokeLinecap="round" 
                 strokeLinejoin="round"/>
@@ -360,7 +387,7 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
 
       {/* Likes count */}
       <div className="post-stats">
-        <button className="likes-count">{likesCount} {likesCount === 1 ? 'like' : 'likes'}</button>
+        <button className="likes-count">{localLikesCount} {localLikesCount === 1 ? 'like' : 'likes'}</button>
         {post.comments.length > 0 && (
           <button 
             className="comments-count" 

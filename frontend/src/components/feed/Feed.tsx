@@ -10,16 +10,20 @@ export function Feed() {
   // 2. The generated `useGetPostsQuery` hook already knows which query to run
   const { loading, error, data, refetch } = useGetPostsQuery({
     pollInterval: 10000,
+    fetchPolicy: 'cache-and-network',
   });
   const { user } = useAuth();
   const { showToast } = useToast();
 
   const handleToggleLike = async (postId: string) => {
+    if (!user?.id) return;
+    
     try {
       await postService.toggleLike(postId);
-      refetch();
+      // Don't refetch immediately - let the 10s poll handle it
     } catch (error) {
       console.error('Error toggling like:', error);
+      showToast('Failed to update like', 'error');
     }
   };
 
