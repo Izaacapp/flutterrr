@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_theme.dart';
 import '../pages/home_page.dart';
-import '../pages/itinerary_page.dart';
+import '../pages/flights_page.dart';
 import '../pages/search_page.dart';
 import '../pages/notifications_page.dart';
 import '../pages/profile_page.dart';
@@ -18,7 +18,7 @@ class _MainAppWidgetState extends State<MainAppWidget> {
 
   final List<Widget> _pages = [
     const HomePage(),
-    const ItineraryPage(),
+    const FlightsPage(),
     const SearchPage(),
     const NotificationsPage(),
     const ProfilePage(),
