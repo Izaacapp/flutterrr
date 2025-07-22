@@ -2,9 +2,7 @@
 
 import { Request, Response } from 'express';
 import Post from '../models/Post';
-import User from '../models/User';
 import { storageService } from '../services/storage.service';
-import { NotificationService } from '../services/notification.service';
 import mongoose from 'mongoose';
 
 export const createPost = async (req: Request, res: Response) => {
@@ -104,23 +102,6 @@ export const likeOrDislikePost = async (req: Request, res: Response) => {
     
     await Post.findByIdAndUpdate(id, update, { new: true });
 
-    // Create notification for like (not for unlike)
-    if (!isLiked && post.author.toString() !== userId) {
-      try {
-        const liker = await User.findById(userId).select('fullName username');
-        if (liker) {
-          await NotificationService.createLikeNotification(
-            post.author.toString(),
-            userId,
-            id,
-            liker
-          );
-        }
-      } catch (notificationError) {
-        console.error('Error creating like notification:', notificationError);
-      }
-    }
-
     return res.status(200).json({
       status: 'success',
       message: isLiked ? 'Post unliked successfully' : 'Post liked successfully',
@@ -173,23 +154,6 @@ export const addComment = async (req: Request, res: Response) => {
 
     post.comments.push(newComment as any);
     await post.save();
-
-    // Create notification for comment (not for self-comments)
-    if (post.author.toString() !== userId) {
-      try {
-        const commenter = await User.findById(userId).select('fullName username');
-        if (commenter) {
-          await NotificationService.createCommentNotification(
-            post.author.toString(),
-            userId,
-            id,
-            commenter
-          );
-        }
-      } catch (notificationError) {
-        console.error('Error creating comment notification:', notificationError);
-      }
-    }
 
     // Populate the author details for the response
     await post.populate('comments.author', 'username fullName avatar');

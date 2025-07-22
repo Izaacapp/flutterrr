@@ -4,90 +4,44 @@ import { PostCard } from './PostCard';
 import { useAuth } from '../../contexts/AuthContext';
 import postService from '../../services/post.service';
 import { useToast } from '../../contexts/ToastContext';
-import { client } from '../../main';
-import { useCallback, useRef, useEffect } from 'react';
 import './Feed.css';
 
 export function Feed() {
   // 2. The generated `useGetPostsQuery` hook already knows which query to run
   const { loading, error, data, refetch } = useGetPostsQuery({
-    pollInterval: 30000, // Reduced from 10s to 30s
-    fetchPolicy: 'cache-first', // Use cache first instead of network
-    notifyOnNetworkStatusChange: false, // Prevent loading state during polling
+    pollInterval: 10000,
+    fetchPolicy: 'cache-and-network',
   });
   const { user } = useAuth();
   const { showToast } = useToast();
-  
-  // Debounce refetch to prevent multiple rapid requests
-  const refetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const debouncedRefetch = useCallback(() => {
-    if (refetchTimeoutRef.current) {
-      clearTimeout(refetchTimeoutRef.current);
-    }
-    refetchTimeoutRef.current = setTimeout(() => {
-      refetch();
-    }, 500); // Wait 500ms before refetching
-  }, [refetch]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (refetchTimeoutRef.current) {
-        clearTimeout(refetchTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const handleToggleLike = async (postId: string) => {
     if (!user?.id) return;
     
     try {
-      // Optimistic update - immediately update cache
-      const currentCache = client.readQuery({ query: require('../../gql/generated').GetPostsDocument });
-      if (currentCache?.posts) {
-        const updatedPosts = currentCache.posts.map((post: any) => {
-          if (post._id === postId) {
-            const isLiked = post.likes.includes(user.id);
-            return {
-              ...post,
-              likes: isLiked 
-                ? post.likes.filter((id: string) => id !== user.id)
-                : [...post.likes, user.id]
-            };
-          }
-          return post;
-        });
-        
-        client.writeQuery({
-          query: require('../../gql/generated').GetPostsDocument,
-          data: { posts: updatedPosts }
-        });
-      }
-      
-      // API call in background - if it fails, next poll will correct the cache
       await postService.toggleLike(postId);
+      // Don't refetch immediately - let the 10s poll handle it
     } catch (error) {
       console.error('Error toggling like:', error);
       showToast('Failed to update like', 'error');
-      // Let next poll correct any optimistic update inconsistencies
     }
   };
 
   const handleCommentAdded = async (postId: string, comment: any) => {
-    // Use debounced refetch to prevent rapid requests
-    debouncedRefetch();
+    // Refetch to get updated posts with new comment
+    refetch();
   };
 
   const handleCommentDeleted = async (postId: string, commentId: string) => {
-    // Use debounced refetch to prevent rapid requests
-    debouncedRefetch();
+    // Refetch to get updated posts without deleted comment
+    refetch();
   };
 
   const handlePostDeleted = async (postId: string) => {
     try {
       await postService.deletePost(postId);
       showToast('Post deleted successfully', 'success');
-      debouncedRefetch();
+      refetch();
     } catch (error) {
       console.error('Error deleting post:', error);
       showToast('Failed to delete post', 'error');

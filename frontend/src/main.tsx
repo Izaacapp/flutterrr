@@ -6,7 +6,6 @@ import './index.css'
 import { ApolloClient, InMemoryCache, ApolloProvider, createHttpLink } from '@apollo/client'
 import { setContext } from '@apollo/client/link/context'
 import { AuthProvider } from './contexts/AuthContext'
-import { NotificationProvider } from './contexts/NotificationContext'
 import { ToastProvider } from './contexts/ToastContext'
 import { gql } from '@apollo/client'
 
@@ -36,11 +35,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <ApolloProvider client={client}>
       <AuthProvider>
-        <NotificationProvider>
-          <ToastProvider>
-            <App />
-          </ToastProvider>
-        </NotificationProvider>
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </AuthProvider>
     </ApolloProvider>
   </React.StrictMode>
