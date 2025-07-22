@@ -48,4 +48,7 @@ router.patch('/:flightId/status', flightController.updateFlightStatus);
 // Delete flight
 router.delete('/:flightId', flightController.deleteFlight);
 
+// Sync user miles from flights
+router.post('/sync-miles', flightController.syncUserMiles);
+
 export default router;

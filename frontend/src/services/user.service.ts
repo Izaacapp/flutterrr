@@ -50,6 +50,10 @@ class UserService {
     });
   }
 
+  async getProfile(): Promise<ApiResponse> {
+    return this.makeRequest(`${this.baseUrl}/profile`);
+  }
+
   async getProfileByUsername(username: string): Promise<ApiResponse> {
     return this.makeRequest(`${this.baseUrl}/profile/${username}`);
   }

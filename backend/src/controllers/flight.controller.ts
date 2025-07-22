@@ -1,6 +1,7 @@
 import { strictDateExtraction } from "../utils/dateStrict";
 import { Request, Response } from 'express';
 import Flight, { IFlight } from '../models/Flight';
+import User from '../models/User';
 import { storageService } from '../services/storage.service';
 import { parseBoardingPass } from '../utils/boardingPassParser';
 import { parseBoardingPassV2, convertToLegacyFormat } from '../utils/boardingPassParserV2';
@@ -10,6 +11,31 @@ import { parseBoardingPassWithSimpletex } from '../utils/boardingPassSimpletex';
 import { parseBoardingPassWithSimpletexV2 } from '../utils/boardingPassSimpletexV2';
 import { parseBoardingPassWithSimpletexV3 } from '../utils/boardingPassSimpletexV3';
 import { calculateFlightDistance } from '../utils/distanceCalculator';
+
+// Helper function to update user's total statistics
+async function updateUserStatistics(userId: string) {
+  try {
+    const user = await User.findById(userId);
+    if (user) {
+      const totalMiles = await user.calculateTotalMilesFromFlights();
+      const totalHours = await user.calculateTotalFlightHoursFromFlights();
+      const totalFlights = await user.calculateTotalFlightsCount();
+      const citiesVisited = await user.calculateUniqueCitiesCount();
+      const countriesVisited = await user.calculateCountriesVisitedFromFlights();
+      
+      await User.findByIdAndUpdate(userId, { 
+        milesFlown: totalMiles,
+        flightHours: totalHours,
+        totalFlights: totalFlights,
+        citiesVisited: citiesVisited,
+        countriesVisited: countriesVisited
+      });
+      console.log(`Updated user ${userId} statistics: ${totalMiles} miles, ${totalHours} hours, ${citiesVisited} cities, ${countriesVisited.length} countries`);
+    }
+  } catch (error) {
+    console.error('Error updating user statistics:', error);
+  }
+}
 
 export const uploadBoardingPass = async (req: Request, res: Response) => {
   try {
@@ -94,7 +120,7 @@ export const uploadBoardingPass = async (req: Request, res: Response) => {
       // Try V2 parser
       const v2Result = await parseBoardingPassV2(file.buffer, file.mimetype);
       if (v2Result) {
-        console.log('V2 Parser succeeded - Gate found:', v2Result.boardingInfo.gate);
+        console.log('V2 Parser succeeded');
         parsedData = convertToLegacyFormat(v2Result);
       } else {
         // Fallback to old parser
@@ -118,8 +144,8 @@ export const uploadBoardingPass = async (req: Request, res: Response) => {
       boardingPassUrl
     });
 
-    // Calculate points
-    flight.points = flight.calculatePoints();
+    // Calculate flight hours
+    flight.flightHours = flight.calculateFlightHours();
     
     // Check if the flight date has passed and mark as completed
     const now = new Date();
@@ -128,6 +154,9 @@ export const uploadBoardingPass = async (req: Request, res: Response) => {
     }
 
     await flight.save();
+
+    // Update user's total statistics
+    await updateUserStatistics(userId);
 
     res.status(201).json({
       message: 'Boarding pass uploaded successfully',
@@ -138,6 +167,47 @@ export const uploadBoardingPass = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to upload boarding pass' });
   }
 };
+
+// Load airports data once at startup
+let airportsData: any[] = [];
+try {
+  const path = require('path');
+  const fs = require('fs');
+  const airportsPath = path.join(__dirname, '../data/airports.json');
+  const airportsJson = fs.readFileSync(airportsPath, 'utf8');
+  airportsData = JSON.parse(airportsJson);
+  console.log(`Loaded ${airportsData.length} airports from airports.json`);
+} catch (error) {
+  console.warn('Failed to load airports.json:', error);
+}
+
+// Helper function to get full airport data including country name
+function getAirportData(airportCode: string): any {
+  // First try to find in airports.json for full country names
+  const airport = airportsData.find((a: any) => a.code === airportCode.toUpperCase());
+  if (airport) {
+    return {
+      name: airport.name,
+      city: airport.city,
+      country: airport.country,
+      lat: airport.lat,
+      lng: airport.lng
+    };
+  }
+  
+  // Fallback to airport-lookup library
+  const airportLookup = require('airport-lookup');
+  const lookupResult = airportLookup(airportCode);
+  if (lookupResult) {
+    // Map ISO code to country name if possible
+    return {
+      ...lookupResult,
+      country: lookupResult.iso === 'US' ? 'United States' : lookupResult.iso
+    };
+  }
+  
+  return null;
+}
 
 export const manualFlightEntry = async (req: Request, res: Response) => {
   try {
@@ -151,17 +221,54 @@ export const manualFlightEntry = async (req: Request, res: Response) => {
         return res.status(400).json({ message: `Missing required field: ${field}` });
       }
     }
+
+    // Enhance airport information using getAirportData helper
+    // Get origin airport details
+    const originAirport = getAirportData(flightData.origin.airportCode);
+    if (originAirport) {
+      flightData.origin.city = flightData.origin.city || originAirport.city || extractCityFromAirportName(originAirport.name) || 'Unknown';
+      flightData.origin.country = flightData.origin.country || originAirport.country || 'United States';
+      flightData.origin.airportName = flightData.origin.airportName || originAirport.name;
+    } else {
+      // Fallback if airport not found
+      flightData.origin.city = flightData.origin.city || 'Unknown';
+      flightData.origin.country = flightData.origin.country || 'United States';
+    }
     
-    // Estimate arrival time if not provided using route-based calculation
-    if (!flightData.scheduledArrivalTime && flightData.origin && flightData.destination) {
-      const { estimateArrivalTime } = require('../services/timeHandling.service');
+    // Get destination airport details  
+    const destAirport = getAirportData(flightData.destination.airportCode);
+    if (destAirport) {
+      flightData.destination.city = flightData.destination.city || destAirport.city || extractCityFromAirportName(destAirport.name) || 'Unknown';
+      flightData.destination.country = flightData.destination.country || destAirport.country || 'United States';
+      flightData.destination.airportName = flightData.destination.airportName || destAirport.name;
+    } else {
+      // Fallback if airport not found
+      flightData.destination.city = flightData.destination.city || 'Unknown';
+      flightData.destination.country = flightData.destination.country || 'United States';
+    }
+
+    // Helper function to extract city from airport name
+    function extractCityFromAirportName(airportName: string): string {
+      if (!airportName) return 'Unknown';
+      // Remove common airport suffixes
+      return airportName
+        .replace(/ International Airport$/i, '')
+        .replace(/ Airport$/i, '')
+        .replace(/ Regional Airport$/i, '')
+        .replace(/ Municipal Airport$/i, '')
+        .split(' ')[0];
+    }
+
+    // Provide default values for required fields if not provided
+    flightData.airline = flightData.airline || 'Other';
+    flightData.flightNumber = flightData.flightNumber || 'MANUAL001';
+    flightData.confirmationCode = flightData.confirmationCode || `MAN${Date.now().toString().slice(-6)}`;
+    
+    // For manual entry, use a simple 3-hour default if no arrival time provided
+    if (!flightData.scheduledArrivalTime) {
       const departureDate = new Date(flightData.scheduledDepartureTime);
-      flightData.scheduledArrivalTime = estimateArrivalTime(
-        departureDate,
-        flightData.origin.airportCode,
-        flightData.destination.airportCode
-      );
-      console.log(`Estimated arrival time for ${flightData.origin.airportCode}-${flightData.destination.airportCode}`);
+      flightData.scheduledArrivalTime = new Date(departureDate.getTime() + (3 * 60 * 60 * 1000)); // Add 3 hours
+      console.log(`Using default 3-hour flight duration for manual entry`);
     }
 
     // Calculate distance if not provided
@@ -175,8 +282,8 @@ export const manualFlightEntry = async (req: Request, res: Response) => {
       ...flightData
     });
 
-    // Calculate points
-    flight.points = flight.calculatePoints();
+    // Calculate flight hours
+    flight.flightHours = flight.calculateFlightHours();
     
     // Check if the flight date has passed and mark as completed
     const now = new Date();
@@ -185,6 +292,9 @@ export const manualFlightEntry = async (req: Request, res: Response) => {
     }
 
     await flight.save();
+
+    // Update user's total statistics
+    await updateUserStatistics(userId);
 
     res.status(201).json({
       message: 'Flight added successfully',
@@ -249,7 +359,7 @@ export const getFlightStats = async (req: Request, res: Response) => {
           _id: null,
           totalFlights: { $sum: 1 },
           totalDistance: { $sum: '$distance' },
-          totalPoints: { $sum: '$points' },
+          totalHours: { $sum: '$flightHours' },
           airlines: { $addToSet: '$airline' },
           destinations: { $addToSet: '$destination.city' }
         }
@@ -259,7 +369,7 @@ export const getFlightStats = async (req: Request, res: Response) => {
           _id: 0,
           totalFlights: 1,
           totalDistance: 1,
-          totalPoints: 1,
+          totalHours: 1,
           uniqueAirlines: { $size: '$airlines' },
           uniqueDestinations: { $size: '$destinations' },
           airlines: 1,
@@ -276,7 +386,7 @@ export const getFlightStats = async (req: Request, res: Response) => {
           _id: { $month: '$scheduledDepartureTime' },
           count: { $sum: 1 },
           distance: { $sum: '$distance' },
-          points: { $sum: '$points' }
+          hours: { $sum: '$flightHours' }
         }
       },
       { $sort: { _id: 1 } }
@@ -303,7 +413,7 @@ export const getFlightStats = async (req: Request, res: Response) => {
       summary: stats[0] || {
         totalFlights: 0,
         totalDistance: 0,
-        totalPoints: 0,
+        totalHours: 0,
         uniqueAirlines: 0,
         uniqueDestinations: 0
       },
@@ -370,6 +480,16 @@ export const updateFlight = async (req: Request, res: Response) => {
     delete updates.userId;
     delete updates.boardingPassUrl;
 
+    // If origin or destination changed, recalculate distance
+    if (updates.origin?.airportCode || updates.destination?.airportCode) {
+      const existingFlight = await Flight.findOne({ _id: flightId, userId });
+      if (existingFlight) {
+        const originCode = updates.origin?.airportCode || existingFlight.origin.airportCode;
+        const destCode = updates.destination?.airportCode || existingFlight.destination.airportCode;
+        updates.distance = await calculateFlightDistance(originCode, destCode);
+      }
+    }
+
     const flight = await Flight.findOneAndUpdate(
       { _id: flightId, userId },
       updates,
@@ -380,10 +500,19 @@ export const updateFlight = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Flight not found' });
     }
 
-    // Recalculate points if flight details changed
-    if (updates.seatClass || updates.distance) {
-      flight.points = flight.calculatePoints();
-      await flight.save();
+    // Check if any fields that affect statistics were updated
+    const statsAffectingFields = ['distance', 'origin', 'destination', 'scheduledDepartureTime', 'scheduledArrivalTime', 'status'];
+    const shouldUpdateStats = statsAffectingFields.some(field => field in updates);
+    
+    if (shouldUpdateStats) {
+      // Recalculate flight hours if needed
+      if (updates.distance || updates.scheduledDepartureTime || updates.scheduledArrivalTime) {
+        flight.flightHours = flight.calculateFlightHours();
+        await flight.save();
+      }
+      
+      // Update user's total statistics when flight details change
+      await updateUserStatistics(userId);
     }
 
     res.json({ 
@@ -407,9 +536,49 @@ export const deleteFlight = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Flight not found' });
     }
 
+    // Update user's total statistics after deletion
+    await updateUserStatistics(userId);
+
     res.json({ message: 'Flight deleted successfully' });
   } catch (error) {
     console.error('Error deleting flight:', error);
     res.status(500).json({ message: 'Failed to delete flight' });
+  }
+};
+
+export const syncUserMiles = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user?._id;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const totalMiles = await user.calculateTotalMilesFromFlights();
+    const totalHours = await user.calculateTotalFlightHoursFromFlights();
+    const totalFlights = await user.calculateTotalFlightsCount();
+    const citiesVisited = await user.calculateUniqueCitiesCount();
+    const countriesVisited = await user.calculateCountriesVisitedFromFlights();
+    
+    await User.findByIdAndUpdate(userId, { 
+      milesFlown: totalMiles,
+      flightHours: totalHours,
+      totalFlights: totalFlights,
+      citiesVisited: citiesVisited,
+      countriesVisited: countriesVisited
+    });
+    
+    res.json({
+      message: 'User statistics synced successfully',
+      totalMiles,
+      totalHours,
+      totalFlights,
+      citiesVisited,
+      countriesVisited: countriesVisited.length
+    });
+  } catch (error) {
+    console.error('Error syncing user statistics:', error);
+    res.status(500).json({ message: 'Failed to sync user statistics' });
   }
 };

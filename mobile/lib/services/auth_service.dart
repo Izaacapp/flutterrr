@@ -15,6 +15,9 @@ class User {
   final String? homeAirport;
   final String? passportCountry;
   final int? milesFlown;
+  final double? flightHours;
+  final int? totalFlights;
+  final int? citiesVisited;
   final List<String>? countriesVisited;
   final bool? emailVerified;
 
@@ -29,6 +32,9 @@ class User {
     this.homeAirport,
     this.passportCountry,
     this.milesFlown,
+    this.flightHours,
+    this.totalFlights,
+    this.citiesVisited,
     this.countriesVisited,
     this.emailVerified,
   });
@@ -45,6 +51,9 @@ class User {
       homeAirport: json['homeAirport'],
       passportCountry: json['passportCountry'],
       milesFlown: json['milesFlown'],
+      flightHours: json['flightHours']?.toDouble(),
+      totalFlights: json['totalFlights'],
+      citiesVisited: json['citiesVisited'],
       countriesVisited: json['countriesVisited'] != null 
           ? List<String>.from(json['countriesVisited'])
           : null,
@@ -218,6 +227,9 @@ class AuthService {
           'homeAirport': _user!.homeAirport,
           'passportCountry': _user!.passportCountry,
           'milesFlown': _user!.milesFlown,
+          'flightHours': _user!.flightHours,
+          'totalFlights': _user!.totalFlights,
+          'citiesVisited': _user!.citiesVisited,
           'countriesVisited': _user!.countriesVisited,
           'emailVerified': _user!.emailVerified,
         }));
@@ -423,6 +435,9 @@ class AuthService {
           'homeAirport': _user!.homeAirport,
           'passportCountry': _user!.passportCountry,
           'milesFlown': _user!.milesFlown,
+          'flightHours': _user!.flightHours,
+          'totalFlights': _user!.totalFlights,
+          'citiesVisited': _user!.citiesVisited,
           'countriesVisited': _user!.countriesVisited,
           'emailVerified': _user!.emailVerified,
         }));
@@ -458,6 +473,43 @@ class AuthService {
     }
   }
 
+  Future<void> refreshUserProfile() async {
+    if (_token == null || _user == null) return;
+    
+    try {
+      final baseUrl = await apiUrl;
+      final response = await _dio.get(
+        '$baseUrl/api/auth/me',
+        options: Options(
+          headers: {'Authorization': 'Bearer $_token'},
+        ),
+      );
+      
+      if (response.data != null && response.data['user'] != null) {
+        _user = User.fromJson(response.data['user']);
+        await _prefs.setString(_userKey, jsonEncode({
+          'id': _user!.id,
+          'username': _user!.username,
+          'email': _user!.email,
+          'fullName': _user!.fullName,
+          'avatar': _user!.avatar,
+          'bio': _user!.bio,
+          'location': _user!.location,
+          'homeAirport': _user!.homeAirport,
+          'passportCountry': _user!.passportCountry,
+          'milesFlown': _user!.milesFlown,
+          'flightHours': _user!.flightHours,
+          'totalFlights': _user!.totalFlights,
+          'citiesVisited': _user!.citiesVisited,
+          'countriesVisited': _user!.countriesVisited,
+          'emailVerified': _user!.emailVerified,
+        }));
+      }
+    } catch (e) {
+      AppLogger.error('Failed to refresh user profile', e);
+    }
+  }
+
   Future<void> _setAuthData(String token, User user) async {
     _token = token;
     _user = user;
@@ -473,6 +525,9 @@ class AuthService {
       'homeAirport': user.homeAirport,
       'passportCountry': user.passportCountry,
       'milesFlown': user.milesFlown,
+      'flightHours': user.flightHours,
+      'totalFlights': user.totalFlights,
+      'citiesVisited': user.citiesVisited,
       'countriesVisited': user.countriesVisited,
       'emailVerified': user.emailVerified,
     }));

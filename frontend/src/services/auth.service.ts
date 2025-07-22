@@ -13,6 +13,9 @@ export interface User {
   homeAirport?: string;
   passportCountry?: string;
   milesFlown?: number;
+  flightHours?: number;
+  totalFlights?: number;
+  citiesVisited?: number;
   countriesVisited?: string[];
   emailVerified?: boolean;
 }

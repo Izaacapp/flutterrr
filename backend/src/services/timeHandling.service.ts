@@ -1,5 +1,5 @@
 import { strictDateExtraction } from "../utils/dateStrict";
-const { findWhere } = require('airport-lookup');
+const airportLookup = require('airport-lookup');
 const tzlookup = require('tz-lookup');
 
 interface FlightTimeData {
@@ -57,13 +57,13 @@ const AIRLINE_TIME_PATTERNS: Record<string, string[]> = {
  * Get airport timezone from IATA code
  */
 export function getAirportTimezone(airportCode: string): string | null {
-  const airport = findWhere({ iata: airportCode.toUpperCase() });
-  if (!airport || !airport.latitude || !airport.longitude) {
+  const airport = airportLookup(airportCode.toUpperCase());
+  if (!airport || !airport.lat || !airport.lon) {
     return null;
   }
   
   try {
-    return tzlookup(airport.latitude, airport.longitude);
+    return tzlookup(parseFloat(airport.lat), parseFloat(airport.lon));
   } catch (error) {
     console.error(`Failed to get timezone for ${airportCode}:`, error);
     return null;
@@ -81,18 +81,18 @@ export function estimateFlightDuration(origin: string, destination: string): num
   }
   
   // Calculate distance-based estimate
-  const originAirport = findWhere({ iata: origin.toUpperCase() });
-  const destAirport = findWhere({ iata: destination.toUpperCase() });
+  const originAirport = airportLookup(origin.toUpperCase());
+  const destAirport = airportLookup(destination.toUpperCase());
   
   if (!originAirport || !destAirport) {
     return 2.5; // Default fallback
   }
   
   const distance = calculateDistance(
-    originAirport.latitude!,
-    originAirport.longitude!,
-    destAirport.latitude!,
-    destAirport.longitude!
+    parseFloat(originAirport.lat!),
+    parseFloat(originAirport.lon!),
+    parseFloat(destAirport.lat!),
+    parseFloat(destAirport.lon!)
   );
   
   if (distance < 500) return FLIGHT_DURATIONS.SHORT;

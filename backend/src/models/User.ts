@@ -14,6 +14,9 @@ export interface IUser extends Document {
   homeAirport?: string;
   passportCountry?: string;
   milesFlown?: number;
+  flightHours?: number;
+  totalFlights?: number;
+  citiesVisited?: number;
   countriesVisited?: string[];
   currentLocation?: {
     lat: number;
@@ -43,6 +46,11 @@ export interface IUser extends Document {
   updatedAt: Date;
   // Methods
   comparePassword(password: string): Promise<boolean>;
+  calculateTotalMilesFromFlights(): Promise<number>;
+  calculateTotalFlightHoursFromFlights(): Promise<number>;
+  calculateUniqueCitiesCount(): Promise<number>;
+  calculateTotalFlightsCount(): Promise<number>;
+  calculateCountriesVisitedFromFlights(): Promise<string[]>;
 }
 
 const userSchema = new Schema<IUser>({
@@ -82,6 +90,18 @@ const userSchema = new Schema<IUser>({
   homeAirport: String,
   passportCountry: String,
   milesFlown: {
+    type: Number,
+    default: 0,
+  },
+  flightHours: {
+    type: Number,
+    default: 0,
+  },
+  citiesVisited: {
+    type: Number,
+    default: 0,
+  },
+  totalFlights: {
     type: Number,
     default: 0,
   },
@@ -161,6 +181,136 @@ userSchema.pre('save', async function(next) {
 // Compare password method
 userSchema.methods.comparePassword = async function(password: string): Promise<boolean> {
   return bcrypt.compare(password, this.password);
+};
+
+// Calculate total miles from flights
+userSchema.methods.calculateTotalMilesFromFlights = async function(): Promise<number> {
+  const Flight = require('./Flight').default;
+  
+  const result = await Flight.aggregate([
+    { $match: { userId: this._id } },
+    { $group: { _id: null, totalMiles: { $sum: '$distance' } } }
+  ]);
+  
+  return result.length > 0 ? result[0].totalMiles : 0;
+};
+
+// Calculate total flight hours from flights
+userSchema.methods.calculateTotalFlightHoursFromFlights = async function(): Promise<number> {
+  const Flight = require('./Flight').default;
+  
+  const result = await Flight.aggregate([
+    { $match: { userId: this._id } },
+    { $group: { _id: null, totalHours: { $sum: '$flightHours' } } }
+  ]);
+  
+  return result.length > 0 ? Math.round(result[0].totalHours * 10) / 10 : 0;
+};
+
+// Calculate unique cities count from flight origins and destinations
+userSchema.methods.calculateUniqueCitiesCount = async function(): Promise<number> {
+  const Flight = require('./Flight').default;
+  
+  const result = await Flight.aggregate([
+    { $match: { userId: this._id } },
+    { 
+      $project: {
+        cities: ['$origin.city', '$destination.city']
+      }
+    },
+    { $unwind: '$cities' },
+    { 
+      $group: { 
+        _id: null,
+        uniqueCities: { $addToSet: '$cities' }
+      }
+    }
+  ]);
+  
+  return result.length > 0 ? result[0].uniqueCities.length : 0;
+};
+
+// Calculate total flights count (actual number of flights)
+userSchema.methods.calculateTotalFlightsCount = async function(): Promise<number> {
+  const Flight = require('./Flight').default;
+  
+  const result = await Flight.aggregate([
+    { $match: { userId: this._id } },
+    { $count: "totalFlights" }
+  ]);
+  
+  return result.length > 0 ? result[0].totalFlights : 0;
+};
+
+// Calculate countries visited from flights
+userSchema.methods.calculateCountriesVisitedFromFlights = async function(): Promise<string[]> {
+  const Flight = require('./Flight').default;
+  
+  const result = await Flight.aggregate([
+    { $match: { userId: this._id } },
+    { 
+      $project: {
+        countries: ['$origin.country', '$destination.country']
+      }
+    },
+    { $unwind: '$countries' },
+    { 
+      $group: { 
+        _id: null,
+        uniqueCountries: { $addToSet: '$countries' }
+      }
+    }
+  ]);
+  
+  const uniqueCountries = result.length > 0 ? result[0].uniqueCountries : [];
+  
+  // Normalize country names to handle inconsistent data
+  const countryMapping: { [key: string]: string } = {
+    'US': 'United States',
+    'USA': 'United States',
+    'United States': 'United States',
+    'JP': 'Japan',
+    'Japan': 'Japan',
+    'GB': 'United Kingdom',
+    'UK': 'United Kingdom',
+    'United Kingdom': 'United Kingdom',
+    'CA': 'Canada',
+    'Canada': 'Canada',
+    'MX': 'Mexico',
+    'Mexico': 'Mexico',
+    'FR': 'France',
+    'France': 'France',
+    'DE': 'Germany',
+    'Germany': 'Germany',
+    'ES': 'Spain',
+    'Spain': 'Spain',
+    'IT': 'Italy',
+    'Italy': 'Italy',
+    'AU': 'Australia',
+    'Australia': 'Australia',
+    'CN': 'China',
+    'China': 'China',
+    'IN': 'India',
+    'India': 'India',
+    'BR': 'Brazil',
+    'Brazil': 'Brazil'
+  };
+  
+  // Normalize and deduplicate countries
+  const normalizedCountries = new Set<string>();
+  uniqueCountries
+    .filter((country: string) => country != null && country !== '')
+    .forEach((country: string) => {
+      const normalized = countryMapping[country] || country;
+      normalizedCountries.add(normalized);
+    });
+  
+  const filteredCountries = Array.from(normalizedCountries).sort();
+  
+  // Debug logging
+  console.log(`User ${this._id} - Countries visited:`, filteredCountries);
+  
+  return filteredCountries;
 };
 
 const User = model<IUser>('User', userSchema);

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import authService, { User, AuthResponse, OTPResponse } from '../services/auth.service';
+import { userService } from '../services/user.service';
 import { client } from '../main';
 
 interface AuthContextType {
@@ -11,6 +12,7 @@ interface AuthContextType {
   resendOTP: () => Promise<OTPResponse>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => void;
+  refreshUserProfile: () => Promise<void>;
   isAuthenticated: boolean;
   needsVerification: boolean;
 }
@@ -102,6 +104,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const refreshUserProfile = async () => {
+    if (authService.isAuthenticated()) {
+      try {
+        const response = await userService.getProfile();
+        if (response.status === 'success' && response.data?.user) {
+          setUser(response.data.user);
+          // Update localStorage as well
+          const USER_KEY = import.meta.env.VITE_AUTH_USER_KEY || 'passport_buddy_user';
+          localStorage.setItem(USER_KEY, JSON.stringify(response.data.user));
+        }
+      } catch (error) {
+        console.error('Failed to refresh user profile:', error);
+      }
+    }
+  };
+
   const needsVerificationValue = user ? !user.emailVerified : false;
   console.log('AuthContext - user:', user, 'needsVerification:', needsVerificationValue);
   
@@ -114,6 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     resendOTP,
     logout,
     updateUser,
+    refreshUserProfile,
     isAuthenticated: !!user && !!authService.getToken(),
     needsVerification: needsVerificationValue,
   };

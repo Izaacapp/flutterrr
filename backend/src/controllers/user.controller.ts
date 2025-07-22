@@ -94,7 +94,7 @@ export const getProfile = catchAsync(async (req: AuthRequest, res: Response, nex
   res.status(200).json({
     status: 'success',
     data: {
-      user
+      user: user.toObject()
     }
   });
 });

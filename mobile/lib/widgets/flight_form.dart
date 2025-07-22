@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/flight_model.dart';
+import '../models/airport_model.dart';
 import '../services/flight_service.dart';
+import 'airport_autocomplete.dart';
 
 class FlightForm extends StatefulWidget {
   final Function(Flight) onFlightAdded;
@@ -32,9 +34,6 @@ class _FlightFormState extends State<FlightForm> {
   final _seatNumberController = TextEditingController();
   
   DateTime? _departureDate;
-  TimeOfDay? _departureTime;
-  DateTime? _arrivalDate;
-  TimeOfDay? _arrivalTime;
   
   String _selectedAirline = 'Other';
   bool _isLoading = false;
@@ -67,7 +66,7 @@ class _FlightFormState extends State<FlightForm> {
     super.dispose();
   }
 
-  Future<void> _selectDate(BuildContext context, bool isDeparture) async {
+  Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -77,52 +76,17 @@ class _FlightFormState extends State<FlightForm> {
     
     if (picked != null) {
       setState(() {
-        if (isDeparture) {
-          _departureDate = picked;
-        } else {
-          _arrivalDate = picked;
-        }
+        _departureDate = picked;
       });
     }
-  }
-
-  Future<void> _selectTime(BuildContext context, bool isDeparture) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    
-    if (picked != null) {
-      setState(() {
-        if (isDeparture) {
-          _departureTime = picked;
-        } else {
-          _arrivalTime = picked;
-        }
-      });
-    }
-  }
-
-  DateTime? _combineDateAndTime(DateTime? date, TimeOfDay? time) {
-    if (date == null || time == null) return null;
-    return DateTime(
-      date.year,
-      date.month,
-      date.day,
-      time.hour,
-      time.minute,
-    );
   }
 
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     
-    final departureDateTime = _combineDateAndTime(_departureDate, _departureTime);
-    final arrivalDateTime = _combineDateAndTime(_arrivalDate, _arrivalTime);
-    
-    if (departureDateTime == null || arrivalDateTime == null) {
+    if (_departureDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select departure and arrival times')),
+        const SnackBar(content: Text('Please select flight date')),
       );
       return;
     }
@@ -146,8 +110,7 @@ class _FlightFormState extends State<FlightForm> {
           'city': _destCityController.text,
           'country': _destCountryController.text,
         },
-        'scheduledDepartureTime': departureDateTime.toIso8601String(),
-        'scheduledArrivalTime': arrivalDateTime.toIso8601String(),
+        'scheduledDepartureTime': _departureDate!.toIso8601String(),
         'seatNumber': _seatNumberController.text.isEmpty ? null : _seatNumberController.text,
       };
 
@@ -274,129 +237,35 @@ class _FlightFormState extends State<FlightForm> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // Origin Section
-                  const Text(
-                    'Origin',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: TextFormField(
-                          controller: _originAirportController,
-                          decoration: const InputDecoration(
-                            labelText: 'Airport',
-                            border: OutlineInputBorder(),
-                          ),
-                          textCapitalization: TextCapitalization.characters,
-                          maxLength: 3,
-                          validator: (value) {
-                            if (value == null || value.length != 3) {
-                              return '3 letters';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _originCityController,
-                          decoration: const InputDecoration(
-                            labelText: 'City',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Required';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _originCountryController,
-                    decoration: const InputDecoration(
-                      labelText: 'Country',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
-                      return null;
+                  // Origin Airport
+                  AirportAutocomplete(
+                    label: 'Departure Airport',
+                    value: _originAirportController.text.isNotEmpty ? _originAirportController.text : null,
+                    onChanged: (airport) {
+                      setState(() {
+                        _originAirportController.text = airport.code;
+                        _originCityController.text = airport.city;
+                        _originCountryController.text = airport.country ?? '';
+                      });
                     },
+                    placeholder: 'Enter departure airport',
+                    required: true,
                   ),
                   const SizedBox(height: 24),
                   
-                  // Destination Section
-                  const Text(
-                    'Destination',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 100,
-                        child: TextFormField(
-                          controller: _destAirportController,
-                          decoration: const InputDecoration(
-                            labelText: 'Airport',
-                            border: OutlineInputBorder(),
-                          ),
-                          textCapitalization: TextCapitalization.characters,
-                          maxLength: 3,
-                          validator: (value) {
-                            if (value == null || value.length != 3) {
-                              return '3 letters';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _destCityController,
-                          decoration: const InputDecoration(
-                            labelText: 'City',
-                            border: OutlineInputBorder(),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Required';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: _destCountryController,
-                    decoration: const InputDecoration(
-                      labelText: 'Country',
-                      border: OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required';
-                      }
-                      return null;
+                  // Destination Airport
+                  AirportAutocomplete(
+                    label: 'Arrival Airport',
+                    value: _destAirportController.text.isNotEmpty ? _destAirportController.text : null,
+                    onChanged: (airport) {
+                      setState(() {
+                        _destAirportController.text = airport.code;
+                        _destCityController.text = airport.city;
+                        _destCountryController.text = airport.country ?? '';
+                      });
                     },
+                    placeholder: 'Enter arrival airport',
+                    required: true,
                   ),
                   const SizedBox(height: 24),
                   
@@ -409,80 +278,23 @@ class _FlightFormState extends State<FlightForm> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => _selectDate(context, true),
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: 'Departure Date',
-                              border: OutlineInputBorder(),
-                            ),
-                            child: Text(
-                              _departureDate != null
-                                  ? DateFormat('MMM dd, yyyy').format(_departureDate!)
-                                  : 'Select date',
-                            ),
-                          ),
+                  InkWell(
+                    onTap: () => _selectDate(context),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Flight Date *',
+                        border: OutlineInputBorder(),
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      child: Text(
+                        _departureDate != null
+                            ? DateFormat('MMM dd, yyyy').format(_departureDate!)
+                            : 'Select date',
+                        style: TextStyle(
+                          color: _departureDate != null ? Colors.black87 : Colors.grey[600],
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => _selectTime(context, true),
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: 'Departure Time',
-                              border: OutlineInputBorder(),
-                            ),
-                            child: Text(
-                              _departureTime != null
-                                  ? _departureTime!.format(context)
-                                  : 'Select time',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => _selectDate(context, false),
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: 'Arrival Date',
-                              border: OutlineInputBorder(),
-                            ),
-                            child: Text(
-                              _arrivalDate != null
-                                  ? DateFormat('MMM dd, yyyy').format(_arrivalDate!)
-                                  : 'Select date',
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: InkWell(
-                          onTap: () => _selectTime(context, false),
-                          child: InputDecorator(
-                            decoration: const InputDecoration(
-                              labelText: 'Arrival Time',
-                              border: OutlineInputBorder(),
-                            ),
-                            child: Text(
-                              _arrivalTime != null
-                                  ? _arrivalTime!.format(context)
-                                  : 'Select time',
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                   const SizedBox(height: 24),
                   

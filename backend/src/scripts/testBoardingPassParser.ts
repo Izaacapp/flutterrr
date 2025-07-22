@@ -59,9 +59,7 @@ async function testParser() {
         console.log(`  Flight: ${result.flight.flightNumber}`);
         console.log(`  Route: ${result.flight.departure.airportCode} → ${result.flight.arrival.airportCode}`);
         
-        console.log('\n🚪 GATE INFO:');
-        console.log(`  Gate: ${result.boardingInfo.gate}`);
-        console.log(`  Departure Gate: ${result.flight.departure.gate || 'Not found'}`);
+        console.log('\n🚪 TERMINAL INFO:');
         console.log(`  Terminal: ${result.flight.departure.terminal || 'Not found'}`);
         
         console.log('\n👤 Passenger:');

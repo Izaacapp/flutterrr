@@ -499,6 +499,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
                                       '${_userProfile!['milesFlown']}',
                                       'Miles Flown',
                                     ),
+                                  if (_userProfile?['flightHours'] != null)
+                                    _buildTravelStat(
+                                      Icons.schedule,
+                                      '${_userProfile!['flightHours']}',
+                                      'Flight Hours',
+                                    ),
                                   if (_userProfile?['countriesVisited'] != null)
                                     _buildTravelStat(
                                       Icons.public,
