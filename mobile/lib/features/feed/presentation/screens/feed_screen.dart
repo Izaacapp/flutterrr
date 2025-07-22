@@ -14,6 +14,7 @@ import '../widgets/like_button.dart';
 import '../../../../widgets/avatar.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
+import '../../../../pages/user_profile_page.dart';
 
 class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
@@ -236,7 +237,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         subject: 'Post by $username',
                       );
                     } catch (e) {
-                      print('Error sharing: $e');
+                      // Silent error handling
                     }
                   },
                 ),
@@ -258,7 +259,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         );
                       }
                     } catch (e) {
-                      print('Failed to copy link: $e');
+                      // Silent error handling
                     }
                   },
                 ),
@@ -280,7 +281,7 @@ class _FeedScreenState extends State<FeedScreen> {
                         );
                       }
                     } catch (e) {
-                      print('Failed to copy text: $e');
+                      // Silent error handling
                     }
                   },
                 ),
@@ -629,10 +630,24 @@ class _FeedScreenState extends State<FeedScreen> {
                           child: Row(
                             children: [
                               // Avatar
-                              Avatar(
-                                imageUrl: post['author']['avatar'],
-                                name: post['author']['fullName'] ?? post['author']['username'] ?? 'User',
-                                size: 40,
+                              GestureDetector(
+                                onTap: () {
+                                  // Navigate to user profile
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => UserProfilePage(
+                                        userId: post['author']['_id'],
+                                        username: post['author']['username'] ?? 'anonymous',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Avatar(
+                                  imageUrl: post['author']['avatar'],
+                                  name: post['author']['fullName'] ?? post['author']['username'] ?? 'User',
+                                  size: 40,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               // Username and time
@@ -640,11 +655,26 @@ class _FeedScreenState extends State<FeedScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      post['author']['username'] ?? 'anonymous',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
+                                    GestureDetector(
+                                      onTap: () {
+                                        // Navigate to user profile
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => UserProfilePage(
+                                              userId: post['author']['_id'],
+                                              username: post['author']['username'] ?? 'anonymous',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Text(
+                                        post['author']['username'] ?? 'anonymous',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          color: AppColors.darkPurple,
+                                        ),
                                       ),
                                     ),
                                     Text(
@@ -730,7 +760,6 @@ class _FeedScreenState extends State<FeedScreen> {
                               itemCount: (post['images'] as List).length,
                               itemBuilder: (context, imageIndex) {
                                 final image = post['images'][imageIndex];
-                                print('Feed image URL: ${image['url']}');
                                 return GestureDetector(
                                   onDoubleTap: () async {
                                     // Double tap to like
@@ -757,8 +786,6 @@ class _FeedScreenState extends State<FeedScreen> {
                                     }
                                   },
                                   onTap: () {
-                                    // Debug: Print the image URL
-                                    print('Opening image URL: ${image['url']}');
                                     
                                     // Open image in full screen
                                     Navigator.push(
@@ -775,7 +802,6 @@ class _FeedScreenState extends State<FeedScreen> {
                                               child: Image.network(
                                                 image['url'],
                                                 errorBuilder: (context, error, stackTrace) {
-                                                  print('Image load error: $error');
                                                   return Column(
                                                     mainAxisAlignment: MainAxisAlignment.center,
                                                     children: [
@@ -863,7 +889,6 @@ class _FeedScreenState extends State<FeedScreen> {
                                         refetch();
                                       }
                                     } catch (e) {
-                                      print('Error toggling like: $e');
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(content: Text('Failed to like post: $e')),
                                       );
