@@ -33,8 +33,8 @@ WORKDIR /app
 COPY --from=builder /app/backend/dist ./dist
 COPY --from=builder /app/backend/package*.json ./
 
-# Install only production dependencies
-RUN npm ci --omit=dev
+# Install only production dependencies (skip prepare script)
+RUN npm ci --omit=dev --ignore-scripts
 
 # Copy the shared module and create symlink (force if exists)
 COPY --from=builder /app/shared /app/shared
