@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "./dateStrict";
+import { safeStrictDateExtraction } from "./dateStrict";
 import axios from 'axios';
 import { BoardingPass, Flight, AirportInfo, Passenger, BoardingInfo, ScanMetadata } from './boardingPassParserV2';
 
@@ -190,7 +192,7 @@ function buildBoardingPass(data: ParsedLineData, confidence: number): BoardingPa
   
   const scanMetadata: ScanMetadata = {
     scanId: `mathpix-${Date.now()}`,
-    scanTimestamp: new Date().toISOString(),
+    scanTimestamp: strictDateExtraction().toISOString(),
     sourceFormat: 'OCR',
     confidence: {
       overall: confidence,
@@ -245,7 +247,7 @@ function buildBoardingPass(data: ParsedLineData, confidence: number): BoardingPa
 }
 
 function parseDateTime(dateStr?: string, timeStr?: string): string {
-  if (!dateStr) return new Date().toISOString();
+  if (!dateStr) return strictDateExtraction().toISOString();
   
   const monthMap: Record<string, number> = {
     'JAN': 0, 'FEB': 1, 'MAR': 2, 'APR': 3, 'MAY': 4, 'JUN': 5,
@@ -253,11 +255,11 @@ function parseDateTime(dateStr?: string, timeStr?: string): string {
   };
   
   const dateMatch = dateStr.match(/(\d{1,2})\s*([A-Z]{3})\s*(\d{2,4})?/);
-  if (!dateMatch) return new Date().toISOString();
+  if (!dateMatch) return strictDateExtraction().toISOString();
   
   const day = parseInt(dateMatch[1]);
   const month = monthMap[dateMatch[2]] || 0;
-  let year = dateMatch[3] ? parseInt(dateMatch[3]) : new Date().getFullYear();
+  let year = dateMatch[3] ? parseInt(dateMatch[3]) : strictDateExtraction().getFullYear();
   
   if (year < 100) {
     year += 2000;

@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "./dateStrict";
+import { safeStrictDateExtraction } from "./dateStrict";
 const pdfParse = require('pdf-parse');
 import { createWorker } from 'tesseract.js';
 
@@ -219,7 +221,7 @@ function parseDate(dateStr: string): Date {
   if (match) {
     const day = parseInt(match[1]);
     const month = monthMap[match[2]];
-    let year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+    let year = match[3] ? parseInt(match[3]) : strictDateExtraction().getFullYear();
     
     if (year < 100) {
       year += 2000;
@@ -228,7 +230,7 @@ function parseDate(dateStr: string): Date {
     return new Date(year, month, day);
   }
   
-  return new Date();
+  return strictDateExtraction();
 }
 
 // Parse time and combine with date
@@ -267,7 +269,7 @@ export async function parseBoardingPassV2(buffer: Buffer, mimeType: string): Pro
     // Initialize scan metadata
     const scanMetadata: ScanMetadata = {
       scanId: generateScanId(),
-      scanTimestamp: new Date().toISOString(),
+      scanTimestamp: strictDateExtraction().toISOString(),
       sourceFormat: 'OCR',
       confidence: {
         overall: 0.85,
@@ -322,14 +324,14 @@ export async function parseBoardingPassV2(buffer: Buffer, mimeType: string): Pro
         airportCode: depCode,
         city: AIRPORTS[depCode]?.city,
         airport: AIRPORTS[depCode]?.airport,
-        scheduledTime: new Date().toISOString() // Will be updated below
+        scheduledTime: strictDateExtraction().toISOString() // Will be updated below
       };
       
       flight.arrival = {
         airportCode: arrCode,
         city: AIRPORTS[arrCode]?.city,
         airport: AIRPORTS[arrCode]?.airport,
-        scheduledTime: new Date().toISOString() // Will be updated below
+        scheduledTime: strictDateExtraction().toISOString() // Will be updated below
       };
     } else {
       console.log('Could not find valid airports');

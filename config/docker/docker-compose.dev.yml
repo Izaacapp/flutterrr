@@ -30,8 +30,8 @@ services:
       context: ../..
       dockerfile: ./backend/Dockerfile.dev
     volumes:
-      - ./backend/src:/app/backend/src
-      - ./shared:/app/shared
+      - ../../backend/src:/app/backend/src
+      - ../../shared:/app/shared
       - /app/backend/node_modules
       - backend_uploads:/app/backend/uploads
     ports:
@@ -73,8 +73,8 @@ services:
       context: ../..
       dockerfile: ./frontend/Dockerfile.dev
     volumes:
-      - ./frontend/src:/app/frontend/src
-      - ./shared:/app/shared
+      - ../../frontend/src:/app/frontend/src
+      - ../../shared:/app/shared
       - /app/frontend/node_modules
     ports:
       - "3001:3001"

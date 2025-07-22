@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 declare module 'pdf-parse' {
   interface PDFInfo {
     PDFFormatVersion: string;

@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 

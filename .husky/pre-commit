@@ -1,0 +1,45 @@
+#!/bin/bash
+
+echo "🔍 Running pre-commit checks to prevent hardcoded time bullshit..."
+
+# BANISH new Date() FALLBACKS
+echo "Checking for hardcoded new Date() fallbacks..."
+if grep -r "new Date()" --include="*.ts" --exclude-dir="node_modules" --exclude-dir="dist" --exclude="*test*" --exclude="*demo*" backend/src | grep -v "// ALLOWED" | grep -v "Date(year" | grep -v "Date(date" | grep -v "Date(result" | grep -v "Date(\`" | head -20; then
+  echo "🚨 LAZY DEV DETECTED: Hardcoded new Date() found as fallback!"
+  echo "👉 Use proper date extraction or return an error instead"
+  echo "👉 If this is intentional, add // ALLOWED comment"
+  exit 1
+fi
+
+# CHECK FOR HARDCODED 2 HOUR ADDITIONS
+echo "Checking for hardcoded 2-hour arrival times..."
+if grep -r "2 \* 60 \* 60 \* 1000" --include="*.ts" --exclude-dir="node_modules" --exclude-dir="dist" --exclude="timeHandling.service.ts" backend/src | head -10; then
+  echo "🚨 HARDCODED TIME DETECTED: Still using 2-hour arrival estimate!"
+  echo "👉 Use estimateArrivalTime() from timeHandling.service.ts"
+  exit 1
+fi
+
+# CHECK FOR INVALID TIME CORRECTIONS
+echo "Checking for hardcoded OCR corrections..."
+if grep -r "minutes === 80.*30\|minutes === 70.*10" --include="*.ts" --exclude-dir="node_modules" --exclude="timeHandling.service.ts" --exclude="boardingPassValidator.ts" backend/src | head -10; then
+  echo "🚨 HARDCODED OCR FIX DETECTED: Don't hardcode time corrections!"
+  echo "👉 Use correctOcrTime() with confidence scores"
+  exit 1
+fi
+
+# CHECK FOR TIMEZONE-IGNORANT DATE PARSING
+echo "Checking for timezone-ignorant date parsing..."
+if grep -r "new Date(.*setHours" --include="*.ts" --exclude-dir="node_modules" --exclude="timeHandling.service.ts" --exclude="boardingPassSimpletex*.ts" backend/src | head -10; then
+  echo "⚠️  WARNING: Using setHours without timezone awareness"
+  echo "👉 Consider using parseZonedDateTime() instead"
+fi
+
+# RUN TYPE CHECK
+echo "Running TypeScript type check..."
+cd backend && npm run typecheck 2>&1 | grep -E "error TS" | head -20
+if [ ${PIPESTATUS[1]} -eq 0 ]; then
+  echo "🚨 TYPE ERRORS DETECTED: Fix TypeScript errors before committing!"
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed! No hardcoded time bullshit detected."

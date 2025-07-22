@@ -1,10 +1,11 @@
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import nodemailer from 'nodemailer';
 import { 
   VERIFICATION_EMAIL_TEMPLATE, 
   WELCOME_EMAIL_TEMPLATE, 
   PASSWORD_RESET_OTP_TEMPLATE,
   PASSWORD_RESET_SUCCESS_TEMPLATE 
-} from '../mailtrap/emailTemplate.js';
+} from '../mailtrap/emailTemplate';
 
 // Create SMTP transporter using Resend's SMTP settings
 const transporter = nodemailer.createTransport({

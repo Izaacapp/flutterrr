@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "./dateStrict";
+import { safeStrictDateExtraction } from "./dateStrict";
 import { createWorker } from 'tesseract.js';
 
 // Import types from existing parser
@@ -85,7 +87,7 @@ export async function parseBoardingPassWithTesseract(buffer: Buffer, mimeType: s
   try {
     // Configure for better boarding pass recognition
     await worker.setParameters({
-      tessedit_pageseg_mode: '3', // Fully automatic page segmentation
+      tessedit_pageseg_mode: 3 as any, // Fully automatic page segmentation
       preserve_interword_spaces: '1',
       tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-/:. ',
     });
@@ -94,10 +96,10 @@ export async function parseBoardingPassWithTesseract(buffer: Buffer, mimeType: s
     const { data } = await worker.recognize(buffer);
     
     console.log('Tesseract OCR confidence:', data.confidence);
-    console.log('Tesseract detected lines:', data.lines.length);
+    console.log('Tesseract detected lines:', (data as any).lines?.length || 0);
     
     // Process lines
-    const parsedData = processLines(data.lines, data.confidence);
+    const parsedData = processLines((data as any).lines || [], data.confidence);
     
     if (!parsedData) {
       console.error('Failed to extract required data from boarding pass');
@@ -431,16 +433,16 @@ function structureExtractedData(data: ExtractedData): ParsedLineData | null {
     result.pnr = Array.from(data.confirmationCodes)[0];
   }
   
-  if (data.dates.size > 0) {
+  if (data.dates.size > 0 && result.departure) {
     result.departure.date = Array.from(data.dates)[0];
   }
   
   // Handle times based on context
-  if (data.times.has('DEPARTURE') && data.times.get('DEPARTURE')!.length > 0) {
+  if (data.times.has('DEPARTURE') && data.times.get('DEPARTURE')!.length > 0 && result.departure) {
     result.departure.time = data.times.get('DEPARTURE')![0];
   }
   
-  if (data.times.has('ARRIVAL') && data.times.get('ARRIVAL')!.length > 0) {
+  if (data.times.has('ARRIVAL') && data.times.get('ARRIVAL')!.length > 0 && result.arrival) {
     result.arrival.time = data.times.get('ARRIVAL')![0];
   }
   
@@ -449,17 +451,17 @@ function structureExtractedData(data: ExtractedData): ParsedLineData | null {
   }
   
   // If no contextual times found, assign first two times found
-  if (!result.departure.time && data.times.has('UNKNOWN')) {
+  if (result.departure && !result.departure.time && data.times.has('UNKNOWN')) {
     const unknownTimes = data.times.get('UNKNOWN')!;
     if (unknownTimes.length > 0) result.departure.time = unknownTimes[0];
-    if (unknownTimes.length > 1) result.arrival.time = unknownTimes[1];
+    if (unknownTimes.length > 1 && result.arrival) result.arrival.time = unknownTimes[1];
   }
   
-  if (data.gates.size > 0) {
+  if (data.gates.size > 0 && result.departure) {
     result.departure.gate = Array.from(data.gates)[0];
   }
   
-  if (data.terminals.size > 0) {
+  if (data.terminals.size > 0 && result.departure) {
     result.departure.terminal = Array.from(data.terminals)[0];
   }
   
@@ -489,7 +491,7 @@ function mapAirlineName(name: string): string {
 function buildBoardingPass(data: ParsedLineData, confidence: number): BoardingPass {
   const scanMetadata: ScanMetadata = {
     scanId: `tesseract-${Date.now()}`,
-    scanTimestamp: new Date().toISOString(),
+    scanTimestamp: strictDateExtraction().toISOString(),
     sourceFormat: 'OCR',
     confidence: {
       overall: confidence / 100,
@@ -512,23 +514,24 @@ function buildBoardingPass(data: ParsedLineData, confidence: number): BoardingPa
       name: getAirlineName(data.airline || 'XX')
     },
     flightNumber: data.flightNumber || 'UNKNOWN',
-    departure: {
+    departure: data.departure ? {
       airportCode: data.departure.airport,
       scheduledTime: parseDateTime(data.departure.date, data.departure.time),
       gate: data.departure.gate,
       terminal: data.departure.terminal
-    },
-    arrival: {
+    } : { airportCode: 'UNKNOWN', scheduledTime: new Date().toISOString() },
+    arrival: data.arrival ? {
       airportCode: data.arrival.airport,
-      scheduledTime: parseDateTime(data.departure.date, data.arrival?.time) ||
-                     new Date(new Date(parseDateTime(data.departure.date, data.departure.time)).getTime() + 2 * 60 * 60 * 1000).toISOString()
-    }
+      scheduledTime: data.departure && data.arrival.time ? 
+                     parseDateTime(data.departure.date, data.arrival.time) :
+                     new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+    } : { airportCode: 'UNKNOWN', scheduledTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString() }
   };
   
   const boardingInfo: BoardingInfo = {
     seatNumber: data.seat || 'UNKNOWN',
     gate: data.departure?.gate || 'UNKNOWN',
-    boardingTime: data.boardingTime ? parseDateTime(data.departure.date, data.boardingTime) : undefined
+    boardingTime: data.boardingTime && data.departure ? parseDateTime(data.departure.date, data.boardingTime) : undefined
   };
   
   return {
@@ -540,21 +543,21 @@ function buildBoardingPass(data: ParsedLineData, confidence: number): BoardingPa
 }
 
 function parseDateTime(dateStr?: string, timeStr?: string): string {
-  if (!dateStr) return new Date().toISOString();
+  if (!dateStr) return strictDateExtraction().toISOString();
   
   const monthMap: Record<string, number> = {
     'JAN': 0, 'FEB': 1, 'MAR': 2, 'APR': 3, 'MAY': 4, 'JUN': 5,
     'JUL': 6, 'AUG': 7, 'SEP': 8, 'OCT': 9, 'NOV': 10, 'DEC': 11
   };
   
-  let date = new Date();
+  let date = strictDateExtraction();
   
   // Parse date
   const monthMatch = dateStr.match(/(\d{1,2})\s*([A-Z]{3})\s*(\d{2,4})?/);
   if (monthMatch) {
     const day = parseInt(monthMatch[1]);
     const month = monthMap[monthMatch[2]] || 0;
-    let year = monthMatch[3] ? parseInt(monthMatch[3]) : new Date().getFullYear();
+    let year = monthMatch[3] ? parseInt(monthMatch[3]) : strictDateExtraction().getFullYear();
     
     if (year < 100) {
       year += 2000;

@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import { parseBoardingPassV2 } from '../utils/boardingPassParserV2';
 
 // Sample boarding pass text that includes gate information

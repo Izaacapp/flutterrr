@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 export const AIRPORT_COORDINATES: Record<string, { lat: number; lon: number; city: string }> = {
   // Major US Airports
   'ATL': { lat: 33.6407, lon: -84.4277, city: 'Atlanta' },
