@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import '@testing-library/jest-dom';
 import { expect, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';

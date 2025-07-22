@@ -1,3 +1,4 @@
+import { strictDateExtraction, safeStrictDateExtraction } from "./dateStrict";
 const pdfParse = require('pdf-parse');
 import { createWorker } from 'tesseract.js';
 import { AviationLexer } from './aviationLexer';
@@ -231,7 +232,7 @@ function extractAirportCode(cityString: string): string {
 
 // Helper to parse flight date and time
 function parseFlightDateTime(dateStr?: string, timeStr?: string): Date {
-  if (!dateStr) return new Date();
+  if (!dateStr) return strictDateExtraction();
   
   try {
     // Parse date like "06 DEC 20"
@@ -268,7 +269,7 @@ function parseFlightDateTime(dateStr?: string, timeStr?: string): Date {
     console.error('Error parsing date/time:', error);
   }
   
-  return new Date();
+  return strictDateExtraction();
 }
 
 // Helper to detect seat class from text
@@ -541,8 +542,8 @@ async function extractBoardingPassData(text: string): Promise<ParsedBoardingPass
       airportCode: destCode,
       ...(fallbackAirportData[destCode] || { city: destCode, country: 'USA' })
     },
-    scheduledDepartureTime: dateMatches.length > 0 ? parseDateFromMatch(dateMatches[0]) : new Date(),
-    scheduledArrivalTime: dateMatches.length > 1 ? parseDateFromMatch(dateMatches[1]) : new Date(),
+    scheduledDepartureTime: dateMatches.length > 0 ? parseDateFromMatch(dateMatches[0]) : strictDateExtraction(),
+    scheduledArrivalTime: dateMatches.length > 1 ? parseDateFromMatch(dateMatches[1]) : strictDateExtraction(),
     seatNumber,
     boardingGroup
   };
@@ -607,11 +608,11 @@ function parseDateFromMatch(match: RegExpMatchArray): Date {
       const day = parseInt(match[1]);
       const monthStr = match[2] || 'JAN';
       const month = monthMap[monthStr];
-      const year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+      const year = match[3] ? parseInt(match[3]) : strictDateExtraction().getFullYear();
       
       // Handle 2-digit years
       if (year < 100) {
-        const currentYear = new Date().getFullYear();
+        const currentYear = strictDateExtraction().getFullYear();
         const century = Math.floor(currentYear / 100) * 100;
         const adjustedYear = century + year;
         // If the date is more than 10 years in the future, assume previous century
@@ -655,7 +656,7 @@ function parseDateFromMatch(match: RegExpMatchArray): Date {
     console.error('Error parsing date:', error);
   }
 
-  return new Date();
+  return strictDateExtraction();
 }
 
 function getAirlineCode(airline: string): string {

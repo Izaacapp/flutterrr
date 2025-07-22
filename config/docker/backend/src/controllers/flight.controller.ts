@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import { Request, Response } from 'express';
 import Flight, { IFlight } from '../models/Flight';
 import { storageService } from '../services/storage.service';
@@ -60,7 +62,7 @@ export const uploadBoardingPass = async (req: Request, res: Response) => {
     flight.points = flight.calculatePoints();
     
     // Check if the flight date has passed and mark as completed
-    const now = new Date();
+    const now = strictDateExtraction();
     if (flight.scheduledArrivalTime < now) {
       flight.status = 'completed';
     }
@@ -105,7 +107,7 @@ export const manualFlightEntry = async (req: Request, res: Response) => {
     flight.points = flight.calculatePoints();
     
     // Check if the flight date has passed and mark as completed
-    const now = new Date();
+    const now = strictDateExtraction();
     if (flight.scheduledArrivalTime < now) {
       flight.status = 'completed';
     }

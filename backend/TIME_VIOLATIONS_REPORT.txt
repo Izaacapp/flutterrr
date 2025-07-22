@@ -1,0 +1,596 @@
+TIME HANDLING VIOLATIONS REPORT
+Generated: 2025-07-22T04:08:53.179Z
+Total Violations: 85
+
+src/controllers/flight.controller.ts:105
+❌ BANNED: new Date() without arguments
+const now = new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/controllers/flight.controller.ts:162
+❌ BANNED: new Date() without arguments
+const now = new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/controllers/post.controller.ts:152
+❌ BANNED: new Date() without arguments
+createdAt: new Date()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/demo/timeHandlingDemo.ts:107
+❌ BANNED: new Date() without arguments
+const ryanairTimes = extractFlightTimes(ryanairText, new Date(), 'DUB', 'BCN', 'FR');
+FIX: Use extractDate() or throw an error
+
+---
+
+src/demo/timeHandlingDemo.ts:112
+❌ BANNED: new Date() without arguments
+const deltaTimes = extractFlightTimes(deltaText, new Date(), 'JFK', 'LAX', 'DL');
+FIX: Use extractDate() or throw an error
+
+---
+
+src/jobs/cleanupExpiredAccounts.ts:8
+❌ BANNED: new Date() without arguments
+otpExpires: { $lt: new Date() }
+FIX: Use extractDate() or throw an error
+
+---
+
+src/models/OTP.ts:26
+❌ BANNED: Adding to current time
+default: () => new Date(Date.now() + 10 * 60 * 1000), // 10 minutes from now
+FIX: Use proper date arithmetic with timezones
+
+---
+
+src/routes/auth.ts:34
+❌ BANNED: Hardcoded duration calculation
+Date.now() + parseInt(JWT_COOKIE_EXPIRES_IN) * 24 * 60 * 60 * 1000
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/routes/auth.ts:83
+❌ BANNED: Hardcoded duration calculation
+const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/routes/auth.ts:189
+❌ BANNED: Hardcoded duration calculation
+const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/routes/auth.ts:247
+❌ BANNED: Hardcoded duration calculation
+const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/routes/auth.ts:270
+❌ BANNED: Hardcoded duration calculation
+Date.now() + parseInt(JWT_COOKIE_EXPIRES_IN) * 24 * 60 * 60 * 1000
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/routes/auth.ts:34
+❌ BANNED: Adding to current time
+Date.now() + parseInt(JWT_COOKIE_EXPIRES_IN) * 24 * 60 * 60 * 1000
+FIX: Use proper date arithmetic with timezones
+
+---
+
+src/routes/auth.ts:83
+❌ BANNED: Adding to current time
+const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+FIX: Use proper date arithmetic with timezones
+
+---
+
+src/routes/auth.ts:189
+❌ BANNED: Adding to current time
+const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+FIX: Use proper date arithmetic with timezones
+
+---
+
+src/routes/auth.ts:247
+❌ BANNED: Adding to current time
+const otpExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+FIX: Use proper date arithmetic with timezones
+
+---
+
+src/routes/auth.ts:270
+❌ BANNED: Adding to current time
+Date.now() + parseInt(JWT_COOKIE_EXPIRES_IN) * 24 * 60 * 60 * 1000
+FIX: Use proper date arithmetic with timezones
+
+---
+
+src/routes/auth.ts:303
+❌ BANNED: Adding to current time
+expires: new Date(Date.now() + 10 * 1000),
+FIX: Use proper date arithmetic with timezones
+
+---
+
+src/routes/auth.ts:332
+❌ BANNED: Adding to current time
+const resetExpires = new Date(Date.now() + (parseInt(process.env.OTP_EXPIRY_MINUTES || '5') * 60 * 1000));
+FIX: Use proper date arithmetic with timezones
+
+---
+
+src/routes/graphql/resolvers/index.ts:42
+❌ BANNED: new Date() without arguments
+createdAt: comment.createdAt ? comment.createdAt.toISOString() : new Date().toISOString()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/routes/health.ts:13
+❌ BANNED: new Date() without arguments
+timestamp: new Date(),
+FIX: Use extractDate() or throw an error
+
+---
+
+src/routes/health.ts:116
+❌ BANNED: new Date() without arguments
+timestamp: new Date()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/routes/timeIntegrity.routes.ts:89
+❌ BANNED: new Date() without arguments
+timestamp: new Date().toISOString(),
+FIX: Use extractDate() or throw an error
+
+---
+
+src/routes/timeIntegrity.routes.ts:102
+❌ BANNED: new Date() without arguments
+timestamp: new Date().toISOString()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/routes/timeIntegrity.routes.ts:112
+❌ BANNED: new Date() without arguments
+timestamp: new Date().toISOString(),
+FIX: Use extractDate() or throw an error
+
+---
+
+src/routes/v1/humanVerify.routes.ts:58
+❌ BANNED: new Date() without arguments
+submittedAt: new Date()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/routes/v1/humanVerify.routes.ts:148
+❌ BANNED: new Date() without arguments
+request.completedAt = new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/scripts/seed-social-edge-cases.ts:353
+❌ BANNED: new Date() without arguments
+createdAt: new Date()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/scripts/seed-social-edge-cases.ts:74
+❌ BANNED: Hardcoded duration calculation
+otpExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/scripts/seed-social-edge-cases.ts:307
+❌ BANNED: Hardcoded duration calculation
+createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000)
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/scripts/seed-social-edge-cases.ts:74
+❌ BANNED: Adding to current time
+otpExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+FIX: Use proper date arithmetic with timezones
+
+---
+
+src/scripts/seed.ts:209
+❌ BANNED: Hardcoded duration calculation
+createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000) // Random time in last 7 days
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/services/otp.service.ts:21
+❌ BANNED: new Date() without arguments
+expiresAt: { $gt: new Date() },
+FIX: Use extractDate() or throw an error
+
+---
+
+src/services/otp.service.ts:90
+❌ BANNED: new Date() without arguments
+if (otpRecord.expiresAt < new Date()) {
+FIX: Use extractDate() or throw an error
+
+---
+
+src/services/otp.service.ts:159
+❌ BANNED: Hardcoded duration calculation
+createdAt: { $lt: new Date(Date.now() - 24 * 60 * 60 * 1000) }, // Older than 24 hours
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/services/otp.service.ts:46
+❌ BANNED: Adding to current time
+expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+FIX: Use proper date arithmetic with timezones
+
+---
+
+src/services/spaces.service.ts:110
+❌ BANNED: new Date() without arguments
+uploadedAt: new Date().toISOString()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/services/spaces.service.ts:158
+❌ BANNED: new Date() without arguments
+uploadedAt: new Date().toISOString()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/services/spaces.service.ts:198
+❌ BANNED: new Date() without arguments
+uploadedAt: new Date().toISOString()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/services/timeHandling.service.ts:310
+❌ BANNED: new Date() without arguments
+const now = new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/services/timeHandling.service.ts:397
+❌ BANNED: Hardcoded duration calculation
+result.arrival = new Date(result.arrival.getTime() + 24 * 60 * 60 * 1000);
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/services/timeHandling.service.ts:231
+❌ BANNED: Hardcoded OCR corrections
+if (minutes === 80) {
+FIX: Use correctOcrTime() with confidence scores
+
+---
+
+src/services/timeHandling.service.ts:234
+❌ BANNED: Hardcoded OCR corrections
+} else if (minutes === 70) {
+FIX: Use correctOcrTime() with confidence scores
+
+---
+
+src/utils/aviationLexer.ts:381
+❌ BANNED: new Date() without arguments
+year: match[3] || new Date().getFullYear().toString()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/aviationLexer.ts:400
+❌ BANNED: new Date() without arguments
+const now = new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassMathpix.ts:193
+❌ BANNED: new Date() without arguments
+scanTimestamp: new Date().toISOString(),
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassMathpix.ts:248
+❌ BANNED: new Date() without arguments
+if (!dateStr) return new Date().toISOString();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassMathpix.ts:256
+❌ BANNED: new Date() without arguments
+if (!dateMatch) return new Date().toISOString();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassMathpix.ts:260
+❌ BANNED: new Date() without arguments
+let year = dateMatch[3] ? parseInt(dateMatch[3]) : new Date().getFullYear();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParser.ts:234
+❌ BANNED: new Date() without arguments
+if (!dateStr) return new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParser.ts:271
+❌ BANNED: new Date() without arguments
+return new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParser.ts:544
+❌ BANNED: new Date() without arguments
+scheduledDepartureTime: dateMatches.length > 0 ? parseDateFromMatch(dateMatches[0]) : new Date(),
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParser.ts:610
+❌ BANNED: new Date() without arguments
+const year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParser.ts:614
+❌ BANNED: new Date() without arguments
+const currentYear = new Date().getFullYear();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParser.ts:658
+❌ BANNED: new Date() without arguments
+return new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParserV2.ts:222
+❌ BANNED: new Date() without arguments
+let year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParserV2.ts:231
+❌ BANNED: new Date() without arguments
+return new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParserV2.ts:270
+❌ BANNED: new Date() without arguments
+scanTimestamp: new Date().toISOString(),
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParserV2.ts:325
+❌ BANNED: new Date() without arguments
+scheduledTime: new Date().toISOString() // Will be updated below
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParserV2.ts:332
+❌ BANNED: new Date() without arguments
+scheduledTime: new Date().toISOString() // Will be updated below
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassParserV2.ts:376
+❌ BANNED: Hardcoded duration calculation
+flight.arrival.scheduledTime = new Date(depDate.getTime() + 2 * 60 * 60 * 1000).toISOString();
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/utils/boardingPassSimpletex.ts:171
+❌ BANNED: new Date() without arguments
+const date = extractDate(normalizedText) || new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletex.ts:181
+❌ BANNED: new Date() without arguments
+const date = extractDate(normalizedText) || new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletex.ts:200
+❌ BANNED: new Date() without arguments
+const date = extractDate(normalizedText) || new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletex.ts:277
+❌ BANNED: new Date() without arguments
+result.scheduledDepartureTime = new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletex.ts:315
+❌ BANNED: new Date() without arguments
+year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletex.ts:409
+❌ BANNED: new Date() without arguments
+new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletex.ts:412
+❌ BANNED: new Date() without arguments
+result.scheduledDepartureTime = parseDateTime(flightDate || new Date(), extractedData.departureTime);
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletex.ts:414
+❌ BANNED: new Date() without arguments
+result.scheduledDepartureTime = flightDate || new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletex.ts:418
+❌ BANNED: new Date() without arguments
+result.scheduledArrivalTime = parseDateTime(flightDate || new Date(), extractedData.arrivalTime);
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletex.ts:239
+❌ BANNED: Hardcoded duration calculation
+result.scheduledArrivalTime = new Date(new Date(result.scheduledDepartureTime).getTime() + 2 * 60 * 60 * 1000);
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/utils/boardingPassSimpletex.ts:421
+❌ BANNED: Hardcoded duration calculation
+result.scheduledArrivalTime = new Date(result.scheduledDepartureTime.getTime() + 2 * 60 * 60 * 1000);
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/utils/boardingPassSimpletexV2.ts:163
+❌ BANNED: new Date() without arguments
+timestamp: new Date()
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletexV2.ts:242
+❌ BANNED: new Date() without arguments
+year = new Date().getFullYear();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletexV2.ts:246
+❌ BANNED: new Date() without arguments
+if (testDate < new Date()) {
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassSimpletexV2.ts:131
+❌ BANNED: Hardcoded duration calculation
+result.scheduledArrivalTime = timeData.arrival || new Date(timeData.departure.getTime() + 2 * 60 * 60 * 1000);
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/utils/boardingPassTesseract.ts:492
+❌ BANNED: new Date() without arguments
+scanTimestamp: new Date().toISOString(),
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassTesseract.ts:543
+❌ BANNED: new Date() without arguments
+if (!dateStr) return new Date().toISOString();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassTesseract.ts:550
+❌ BANNED: new Date() without arguments
+let date = new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassTesseract.ts:557
+❌ BANNED: new Date() without arguments
+let year = monthMatch[3] ? parseInt(monthMatch[3]) : new Date().getFullYear();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassTesseract.ts:524
+❌ BANNED: Hardcoded duration calculation
+new Date(new Date(parseDateTime(data.departure.date, data.departure.time)).getTime() + 2 * 60 * 60 * 1000).toISOString()
+FIX: Use FLIGHT_DURATIONS database
+
+---
+
+src/utils/boardingPassValidator.ts:441
+❌ BANNED: new Date() without arguments
+const now = new Date();
+FIX: Use extractDate() or throw an error
+
+---
+
+src/utils/boardingPassValidator.ts:360
+❌ BANNED: Hardcoded OCR corrections
+if (minutes === 80) minutes = 30;
+FIX: Use correctOcrTime() with confidence scores
+
+---
+
+scripts/time-handling-audit.js:11
+❌ BANNED: new Date() without arguments
+message: '❌ BANNED: new Date() without arguments',
+FIX: Use extractDate() or throw an error
+
+---
+
+scripts/time-handling-audit.js:151
+❌ BANNED: new Date() without arguments
+`Generated: ${new Date().toISOString()}\n` +
+FIX: Use extractDate() or throw an error

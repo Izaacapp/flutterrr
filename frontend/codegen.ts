@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import { CodegenConfig } from '@graphql-codegen/cli';
 
 const config: CodegenConfig = {

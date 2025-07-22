@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import User from '../models/User';
 
 // Cleanup function to remove expired unverified accounts
@@ -5,7 +7,7 @@ export const cleanupExpiredAccounts = async () => {
   try {
     const result = await User.deleteMany({
       emailVerified: false,
-      otpExpires: { $lt: new Date() }
+      otpExpires: { $lt: strictDateExtraction() }
     });
     
     if (result.deletedCount > 0) {

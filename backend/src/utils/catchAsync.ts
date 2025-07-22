@@ -1,3 +1,4 @@
+import { safeStrictDateExtraction } from "./dateStrict";
 import { Request, Response, NextFunction } from 'express';
 
 const catchAsync = (fn: Function) => {

@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import { useState, useRef } from "react";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB

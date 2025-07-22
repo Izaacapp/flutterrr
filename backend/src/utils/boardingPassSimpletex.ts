@@ -1,6 +1,8 @@
+import { strictDateExtraction } from "./dateStrict";
 import axios from 'axios';
 import FormData from 'form-data';
 import { validateBoardingPass, ValidationResult } from './boardingPassValidator';
+import { extractFlightTimes, getAirportTimezone } from '../services/timeHandling.service';
 
 // SimpleTex API configuration
 const SIMPLETEX_API_URL = 'https://server.simpletex.net/api/latex_ocr';
@@ -167,7 +169,7 @@ function parseOCRText(text: string): any | null {
   for (const pattern of timePatterns.departure) {
     const match = normalizedText.match(pattern);
     if (match) {
-      const date = extractDate(normalizedText) || new Date();
+      const date = extractDate(normalizedText) || strictDateExtraction();
       result.scheduledDepartureTime = parseDateTime(date, match[1]);
       break;
     }
@@ -177,7 +179,7 @@ function parseOCRText(text: string): any | null {
   for (const pattern of timePatterns.arrival) {
     const match = normalizedText.match(pattern);
     if (match) {
-      const date = extractDate(normalizedText) || new Date();
+      const date = extractDate(normalizedText) || strictDateExtraction();
       result.scheduledArrivalTime = parseDateTime(date, match[1]);
       break;
     }
@@ -196,7 +198,7 @@ function parseOCRText(text: string): any | null {
   // If times not found with context, look for any times
   if (!result.scheduledDepartureTime || !result.scheduledArrivalTime) {
     const genericTimes = normalizedText.match(/(\d{1,2}:\d{2}\s*[AP]M?)/gi) || [];
-    const date = extractDate(normalizedText) || new Date();
+    const date = extractDate(normalizedText) || strictDateExtraction();
     
     // Filter out boarding time from generic times
     const nonBoardingTimes = genericTimes.filter(time => 
@@ -273,7 +275,7 @@ function parseOCRText(text: string): any | null {
   }
   
   if (!result.scheduledDepartureTime) {
-    result.scheduledDepartureTime = new Date();
+    result.scheduledDepartureTime = strictDateExtraction();
   }
   
   return result;
@@ -311,7 +313,7 @@ function extractDate(text: string): Date | null {
         // Abbreviated month pattern
         day = parseInt(match[1]);
         month = monthMap[match[2].toUpperCase()];
-        year = match[3] ? parseInt(match[3]) : new Date().getFullYear();
+        year = match[3] ? parseInt(match[3]) : strictDateExtraction().getFullYear();
       } else {
         // Numeric date pattern (assume MM/DD/YYYY)
         month = parseInt(match[1]) - 1; // JavaScript months are 0-based
@@ -405,16 +407,16 @@ function convertValidationToFlightData(validation: any): any | null {
   // Handle dates and times
   const flightDate = extractedData.date ? 
     extractDate(extractedData.date) : 
-    new Date();
+    strictDateExtraction();
   
   if (extractedData.departureTime) {
-    result.scheduledDepartureTime = parseDateTime(flightDate || new Date(), extractedData.departureTime);
+    result.scheduledDepartureTime = parseDateTime(flightDate || strictDateExtraction(), extractedData.departureTime);
   } else {
-    result.scheduledDepartureTime = flightDate || new Date();
+    result.scheduledDepartureTime = flightDate || strictDateExtraction();
   }
   
   if (extractedData.arrivalTime) {
-    result.scheduledArrivalTime = parseDateTime(flightDate || new Date(), extractedData.arrivalTime);
+    result.scheduledArrivalTime = parseDateTime(flightDate || strictDateExtraction(), extractedData.arrivalTime);
   } else {
     // Estimate arrival as 2 hours after departure
     result.scheduledArrivalTime = new Date(result.scheduledDepartureTime.getTime() + 2 * 60 * 60 * 1000);

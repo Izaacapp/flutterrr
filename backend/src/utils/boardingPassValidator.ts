@@ -1,3 +1,4 @@
+import { strictDateExtraction } from "./dateStrict";
 const levenshtein = require('levenshtein');
 
 // IATA Airline codes database
@@ -438,7 +439,7 @@ export function validateDate(text: string): ValidationResult {
     const match = text.match(pattern);
     if (match) {
       // Validate the date is reasonable (not too far in past or future)
-      const now = new Date();
+      const now = strictDateExtraction();
       const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
       const oneYearAhead = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate());
       
@@ -537,10 +538,10 @@ export function validateBoardingPass(ocrResult: OCRResult | string): BoardingPas
   }
   
   // If no labeled times, use position heuristics
-  if (!departureTime.valid && times.length > 0) {
+  if (!departureTime.valid && times.length > 0 && times[0]) {
     departureTime = validateTime(times[0], 'departure');
   }
-  if (!arrivalTime.valid && times.length > 1) {
+  if (!arrivalTime.valid && times.length > 1 && times[1]) {
     arrivalTime = validateTime(times[1], 'arrival');
   }
   

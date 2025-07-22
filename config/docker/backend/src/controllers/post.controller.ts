@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 // File: /api/src/controllers/post.controller.ts
 
 import { Request, Response } from 'express';
@@ -149,7 +151,7 @@ export const addComment = async (req: Request, res: Response) => {
     const newComment = {
       author: new mongoose.Types.ObjectId(userId),
       content: content.trim(),
-      createdAt: new Date()
+      createdAt: strictDateExtraction()
     };
 
     post.comments.push(newComment as any);
