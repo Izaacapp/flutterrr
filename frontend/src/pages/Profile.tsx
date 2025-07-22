@@ -6,6 +6,7 @@ import { useToast } from '../contexts/ToastContext';
 import { userService } from '../services/user.service';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { UserPostsFeed } from '../components/profile/UserPostsFeed';
+import { EditProfile } from '../components/profile/EditProfile';
 
 export const Profile: React.FC = () => {
   const { username } = useParams();
@@ -23,6 +24,7 @@ export const Profile: React.FC = () => {
   const [isBlockLoading, setIsBlockLoading] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   
   const isOwnProfile = !username || username === currentUser?.username;
@@ -191,6 +193,29 @@ export const Profile: React.FC = () => {
       showToast('Failed to update block status', 'error');
     } finally {
       setIsBlockLoading(false);
+    }
+  };
+
+  const handleSaveProfile = async (updatedData: Partial<any>) => {
+    try {
+      const response = await userService.updateProfile(updatedData);
+      if (response.status === 'success') {
+        // Update current user context with new data
+        if (isOwnProfile) {
+          updateUser(response.data.user);
+        }
+        // Update profile user state
+        setProfileUser(response.data.user);
+        showToast('Profile updated successfully!', 'success');
+      }
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      if (error.response?.data?.message === 'Username is already taken') {
+        throw error; // Let EditProfile component handle this specific error
+      } else {
+        showToast('Failed to update profile', 'error');
+        throw error;
+      }
     }
   };
 
@@ -535,6 +560,33 @@ export const Profile: React.FC = () => {
             <div>Followers</div>
           </div>
         </div>
+
+        {/* Edit Profile Button - Only for own profile */}
+        {isOwnProfile && (
+          <button
+            onClick={() => setShowEditProfile(true)}
+            style={{
+              padding: '0.75rem 2rem',
+              backgroundColor: 'var(--pb-medium-purple)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '1rem',
+              fontWeight: '500',
+              cursor: 'pointer',
+              marginBottom: '1rem',
+              transition: 'background-color 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--pb-dark-purple)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--pb-medium-purple)';
+            }}
+          >
+            Edit Profile
+          </button>
+        )}
 
         {/* Follow Button */}
         {!isOwnProfile && !isBlocked && (
@@ -881,6 +933,16 @@ export const Profile: React.FC = () => {
         onConfirm={handleBlockToggle}
         onCancel={() => setShowBlockConfirm(false)}
       />
+
+      {/* Edit Profile Modal */}
+      {user && (
+        <EditProfile
+          user={user}
+          isOpen={showEditProfile}
+          onClose={() => setShowEditProfile(false)}
+          onSave={handleSaveProfile}
+        />
+      )}
     </div>
   );
 };

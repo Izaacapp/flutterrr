@@ -11,6 +11,7 @@ import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/auth/presentation/screens/otp_verification_screen.dart';
 import 'services/auth_service.dart';
 import 'widgets/main_app_widget.dart';
+import 'pages/edit_profile_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -85,6 +86,9 @@ class MyApp extends StatelessWidget {
                 debugShowCheckedModeBanner: false,
                 title: 'Passport Buddy',
                 theme: AppTheme.lightTheme,
+                routes: {
+                  '/edit-profile': (context) => const EditProfilePage(),
+                },
                 home: Consumer<AuthProvider>(
                   builder: (context, auth, child) {
                     if (auth.isLoading) {

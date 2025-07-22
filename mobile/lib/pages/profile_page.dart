@@ -439,6 +439,23 @@ class _ProfilePageState extends State<ProfilePage> {
                   color: Colors.grey,
                 ),
               ),
+              const SizedBox(height: 16),
+              
+              // Edit Profile Button
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/edit-profile');
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mediumPurple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text('Edit Profile'),
+              ),
               const SizedBox(height: 32),
               
               // Travel Statistics

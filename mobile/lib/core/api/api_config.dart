@@ -127,6 +127,16 @@ class ApiConfig {
     _cacheTime = DateTime.now();
   }
 
+  // Get base API URL (without /graphql)
+  static Future<String> getBaseApiUrl() async {
+    final graphqlEndpoint = await discoverEndpoint();
+    // Remove /graphql suffix if present
+    if (graphqlEndpoint.endsWith('/graphql')) {
+      return graphqlEndpoint.substring(0, graphqlEndpoint.length - 8);
+    }
+    return graphqlEndpoint;
+  }
+
   // Clear cache (useful for testing)
   static void clearCache() {
     _cachedEndpoint = null;

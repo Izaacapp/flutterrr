@@ -69,6 +69,13 @@ class UserService {
       method: 'DELETE',
     });
   }
+
+  async updateProfile(profileData: any): Promise<ApiResponse> {
+    return this.makeRequest(`${this.baseUrl}/profile`, {
+      method: 'PATCH',
+      body: JSON.stringify(profileData),
+    });
+  }
 }
 
 export const userService = new UserService();

@@ -8,16 +8,29 @@ interface AuthRequest extends Request {
 }
 
 export const updateProfile = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const { fullName, bio, location, homeAirport, passportCountry, avatar } = req.body;
+  const { fullName, username, bio, location, homeAirport, passportCountry, avatar } = req.body;
   
   if (!req.userId) {
     return next(new AppError('User not authenticated', 401));
+  }
+
+  // Check if username is taken by another user (if username is being updated)
+  if (username !== undefined) {
+    const existingUser = await User.findOne({ 
+      username: username.toLowerCase(), 
+      _id: { $ne: req.userId } 
+    });
+    
+    if (existingUser) {
+      return next(new AppError('Username is already taken', 400));
+    }
   }
 
   // Build update object with only provided fields
   const updateData: any = {};
   
   if (fullName !== undefined) updateData.fullName = fullName;
+  if (username !== undefined) updateData.username = username.toLowerCase();
   if (bio !== undefined) updateData.bio = bio;
   if (location !== undefined) updateData.location = location;
   if (homeAirport !== undefined) updateData.homeAirport = homeAirport;
