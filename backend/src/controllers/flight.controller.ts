@@ -3,6 +3,9 @@ import Flight, { IFlight } from '../models/Flight';
 import { storageService } from '../services/storage.service';
 import { parseBoardingPass } from '../utils/boardingPassParser';
 import { parseBoardingPassV2, convertToLegacyFormat } from '../utils/boardingPassParserV2';
+import { parseBoardingPassWithMathpix } from '../utils/boardingPassMathpix';
+import { parseBoardingPassWithTesseract } from '../utils/boardingPassTesseract';
+import { parseBoardingPassWithSimpletex } from '../utils/boardingPassSimpletex';
 import { calculateFlightDistance } from '../utils/distanceCalculator';
 
 export const uploadBoardingPass = async (req: Request, res: Response) => {
@@ -14,7 +17,8 @@ export const uploadBoardingPass = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'No boarding pass file provided' });
     }
 
-    // Upload to storage
+    // Upload to storage with configurable folder
+    const uploadFolder = process.env.BOARDING_PASS_UPLOAD_FOLDER || 'boarding-passes';
     const uploadResult = await storageService.upload({
       fieldname: file.fieldname,
       originalname: file.originalname,
@@ -23,22 +27,52 @@ export const uploadBoardingPass = async (req: Request, res: Response) => {
       buffer: file.buffer,
       size: file.size
     }, {
-      folder: `boarding-passes/${userId}`
+      folder: `${uploadFolder}/${userId}`
     });
     const boardingPassUrl = uploadResult.url;
 
-    // Parse boarding pass data (OCR or PDF parsing)
-    // Try new parser first
+    // Parse boarding pass data - Try SimpleTex first
     let parsedData = null;
-    const v2Result = await parseBoardingPassV2(file.buffer, file.mimetype);
     
-    if (v2Result) {
-      console.log('V2 Parser succeeded - Gate found:', v2Result.boardingInfo.gate);
-      parsedData = convertToLegacyFormat(v2Result);
-    } else {
-      // Fallback to old parser
-      console.log('V2 Parser failed, trying legacy parser');
-      parsedData = await parseBoardingPass(file.buffer, file.mimetype);
+    // Try SimpleTex OCR API first
+    if (process.env.SIMPLETEX_API_KEY) {
+      console.log('Trying SimpleTex OCR API...');
+      parsedData = await parseBoardingPassWithSimpletex(file.buffer, file.mimetype);
+      if (parsedData) {
+        console.log('SimpleTex OCR succeeded');
+      }
+    }
+    
+    // Try enhanced Tesseract OCR if SimpleTex fails
+    if (!parsedData) {
+      console.log('Trying enhanced Tesseract OCR...');
+      const tesseractResult = await parseBoardingPassWithTesseract(file.buffer, file.mimetype);
+      if (tesseractResult) {
+        console.log('Tesseract OCR succeeded');
+        parsedData = convertToLegacyFormat(tesseractResult);
+      }
+    }
+    
+    if (!parsedData && process.env.MATHPIX_APP_ID && process.env.MATHPIX_APP_KEY) {
+      console.log('Trying Mathpix OCR...');
+      const mathpixResult = await parseBoardingPassWithMathpix(file.buffer, file.mimetype);
+      if (mathpixResult) {
+        console.log('Mathpix OCR succeeded');
+        parsedData = convertToLegacyFormat(mathpixResult);
+      }
+    }
+    
+    if (!parsedData) {
+      // Try V2 parser
+      const v2Result = await parseBoardingPassV2(file.buffer, file.mimetype);
+      if (v2Result) {
+        console.log('V2 Parser succeeded - Gate found:', v2Result.boardingInfo.gate);
+        parsedData = convertToLegacyFormat(v2Result);
+      } else {
+        // Fallback to old parser
+        console.log('V2 Parser failed, trying legacy parser');
+        parsedData = await parseBoardingPass(file.buffer, file.mimetype);
+      }
     }
 
     if (!parsedData) {
@@ -82,12 +116,18 @@ export const manualFlightEntry = async (req: Request, res: Response) => {
     const userId = req.user?._id;
     const flightData = req.body;
 
-    // Validate required fields
-    const requiredFields = ['airline', 'flightNumber', 'confirmationCode', 'origin', 'destination', 'scheduledDepartureTime', 'scheduledArrivalTime'];
+    // Validate required fields - only airports and date are required
+    const requiredFields = ['origin', 'destination', 'scheduledDepartureTime'];
     for (const field of requiredFields) {
       if (!flightData[field]) {
         return res.status(400).json({ message: `Missing required field: ${field}` });
       }
+    }
+    
+    // Set default arrival time if not provided (same day, 2 hours later)
+    if (!flightData.scheduledArrivalTime) {
+      const departureDate = new Date(flightData.scheduledDepartureTime);
+      flightData.scheduledArrivalTime = new Date(departureDate.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours
     }
 
     // Calculate distance if not provided

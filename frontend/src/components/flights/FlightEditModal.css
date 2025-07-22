@@ -133,6 +133,23 @@
   cursor: not-allowed;
 }
 
+.text-red-500 {
+  color: #ef4444;
+}
+
+.form-info {
+  padding: 10px;
+  background-color: #f0f7ff;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.form-info p {
+  margin: 0;
+  font-size: 14px;
+  color: #4a5568;
+}
+
 @media (max-width: 600px) {
   .form-grid {
     grid-template-columns: 1fr;

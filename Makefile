@@ -23,7 +23,7 @@ setup: ## Initial project setup (run this first!)
 .PHONY: dev
 dev: ## Start all services in development mode
 	@echo "🚀 Starting development environment..."
-	docker-compose --env-file .env.dev up
+	@cd config/docker && docker-compose -f docker-compose.dev.yml --env-file ../../.env.dev up
 
 .PHONY: up
 up: dev-d ## Alias for dev-d (background mode)
@@ -31,7 +31,7 @@ up: dev-d ## Alias for dev-d (background mode)
 .PHONY: dev-d
 dev-d: ## Start all services in background (detached)
 	@echo "🚀 Starting development environment (detached)..."
-	@docker-compose --env-file .env.dev up -d
+	@cd config/docker && docker-compose -f docker-compose.dev.yml --env-file ../../.env.dev up -d
 	@sleep 3
 	@echo "✅ Services started!"
 	@echo "   • Frontend: http://localhost:3001"
@@ -44,7 +44,7 @@ dev-d: ## Start all services in background (detached)
 .PHONY: stop
 stop: ## Stop all running services
 	@echo "🛑 Stopping all services..."
-	docker-compose --env-file .env.dev down
+	docker-compose -f config/docker/docker-compose.dev.yml --env-file .env.dev down
 
 .PHONY: down
 down: stop ## Alias for stop
@@ -55,12 +55,12 @@ restart: stop dev ## Restart all services
 .PHONY: rebuild
 rebuild: ## Rebuild and start all services
 	@echo "🔨 Rebuilding all services..."
-	docker-compose --env-file .env.dev up --build
+	docker-compose -f config/docker/docker-compose.dev.yml --env-file .env.dev up --build
 
 .PHONY: status
 status: ## Show status of all services
 	@echo "📊 Service Status:"
-	@docker-compose --env-file .env.dev ps
+	@docker-compose -f config/docker/docker-compose.dev.yml --env-file .env.dev ps
 	@echo ""
 	@make health
 
@@ -76,28 +76,40 @@ health: ## Check health of all services
 
 .PHONY: logs
 logs: ## Show logs from all services
-	docker-compose --env-file .env.dev logs -f
+	docker-compose -f config/docker/docker-compose.dev.yml --env-file .env.dev logs -f
 
 .PHONY: logs-backend
 logs-backend: ## Show Backend logs only
-	docker-compose --env-file .env.dev logs -f backend
+	docker-compose -f config/docker/docker-compose.dev.yml --env-file .env.dev logs -f backend
 
 .PHONY: logs-frontend
 logs-frontend: ## Show Frontend logs only
-	docker-compose --env-file .env.dev logs -f frontend
+	docker-compose -f config/docker/docker-compose.dev.yml --env-file .env.dev logs -f frontend
 
 .PHONY: logs-db
 logs-db: ## Show MongoDB logs only
-	docker-compose --env-file .env.dev logs -f mongodb
+	docker-compose -f config/docker/docker-compose.dev.yml --env-file .env.dev logs -f mongodb
 
 .PHONY: clean
 clean: stop ## Stop services and remove volumes (fresh start)
 	@echo "🧹 Cleaning up volumes and containers..."
-	docker-compose --env-file .env.dev down -v --remove-orphans
+	docker-compose -f config/docker/docker-compose.dev.yml --env-file .env.dev down -v --remove-orphans
 	@echo "✅ Cleanup complete!"
 
 .PHONY: reset
 reset: clean setup dev ## Full reset (clean + setup + dev)
+
+.PHONY: fix-volumes
+fix-volumes: ## Fix volume mount issues by copying source files
+	@echo "🔧 Fixing volume mounts by copying source files..."
+	@docker cp backend/src/. mern_flutter_backend:/app/backend/src/ 2>/dev/null || true
+	@docker cp frontend/src/. mern_flutter_frontend:/app/frontend/src/ 2>/dev/null || true
+	@docker cp shared/. mern_flutter_backend:/app/shared/ 2>/dev/null || true
+	@docker cp shared/. mern_flutter_frontend:/app/shared/ 2>/dev/null || true
+	@docker cp frontend/index.html mern_flutter_frontend:/app/frontend/ 2>/dev/null || true
+	@docker cp frontend/public/. mern_flutter_frontend:/app/frontend/public/ 2>/dev/null || true
+	@docker restart mern_flutter_backend mern_flutter_frontend 2>/dev/null || true
+	@echo "✅ Volume mounts fixed! Services restarting..."
 
 .PHONY: test
 test: ## Run all tests

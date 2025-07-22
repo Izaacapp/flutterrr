@@ -13,6 +13,7 @@ import healthRoutes from './routes/health';
 import flightRoutes from './routes/v1/flight.routes';
 import { env } from './config/env';
 import errorHandler from './middleware/errorHandler';
+import { validationRouter } from './services/boardingPassValidation.service';
 
 const app = express();
 
@@ -78,6 +79,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/flights', flightRoutes);
+app.use('/api/boarding-pass', validationRouter);
 
 // --- Final Error Handler ---
 app.use(errorHandler);
