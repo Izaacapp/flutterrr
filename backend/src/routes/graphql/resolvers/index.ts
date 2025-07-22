@@ -3,8 +3,10 @@ import mongoose from 'mongoose';
 import { AuthenticationError } from 'apollo-server-express';
 import Post, { IPost } from '../../../models/Post';
 import User from '../../../models/User';
-import { createPostSchema } from '@my-app/shared';
-import { ZodError } from 'zod';
+// import Notification from '../../../models/Notification';
+// import { NotificationService } from '../../../services/notification.service';
+// import { createPostSchema } from '@my-app/shared';
+// import { ZodError } from 'zod';
 
 // KEY CHANGE: Changed `export const resolvers =` to `export default`
 export default {
@@ -117,9 +119,9 @@ export default {
           throw new AuthenticationError('You must be logged in to create a post');
         }
         
-        const validated = createPostSchema.parse(postInput);
+        // const validated = createPostSchema.parse(postInput);
         const newPost = new Post({ 
-          content: validated.content,
+          content: postInput.content,
           author: context.userId,
           images: []
         });
@@ -142,10 +144,6 @@ export default {
           createdAt: newPost.createdAt.toISOString()
         };
       } catch (err) {
-        if (err instanceof ZodError) {
-          const validationErrorMessage = err.errors.map(e => e.message).join(', ');
-          throw new AuthenticationError(`Validation error: ${validationErrorMessage}`);
-        }
         console.error('Error creating post:', err);
         throw new Error('An error occurred while creating the post.');
       }
