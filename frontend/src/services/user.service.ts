@@ -1,5 +1,5 @@
-import { strictDateExtraction } from "../utils/dateStrict";
-import { safeStrictDateExtraction } from "../utils/dateStrict";
+// Unused imports removed for cleanliness.
+
 interface ApiResponse<T = any> {
   status: string;
   data?: T;
@@ -31,8 +31,14 @@ class UserService {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
-      throw new Error(errorData.message || `Request failed with status ${response.status}`);
+        // Use a custom Error class or object if you have one, otherwise this is fine.
+        const errorData = await response.json().catch(() => ({ 
+            message: 'An unknown error occurred' 
+        }));
+        const error = new Error(errorData.message || `Request failed with status ${response.status}`);
+        // Attach the response object for more context in the calling code
+        (error as any).response = response; 
+        throw error;
     }
 
     return response.json();
@@ -57,6 +63,29 @@ class UserService {
   async getProfileByUsername(username: string): Promise<ApiResponse> {
     return this.makeRequest(`${this.baseUrl}/profile/${username}`);
   }
+  
+  async updateAvatar(image: File): Promise<ApiResponse> {
+    const formData = new FormData();
+    formData.append('avatar', image);
+
+    const token = this.getAuthToken();
+    const response = await fetch(`${this.baseUrl}/avatar`, {
+        method: 'POST',
+        headers: {
+            ...(token && { 'Authorization': `Bearer ${token}` }),
+        },
+        body: formData
+    });
+    
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to update avatar' }));
+        const error = new Error(errorData.message);
+        (error as any).response = response;
+        throw error;
+    }
+    
+    return response.json();
+  }
 
   async blockUser(userId: string): Promise<ApiResponse> {
     return this.makeRequest(`${this.baseUrl}/block/${userId}`, {
@@ -70,7 +99,15 @@ class UserService {
     });
   }
 
-  async updateProfile(profileData: any): Promise<ApiResponse> {
+  // Merged method signature, combining the safety of 'main' with the new field from 'feats'
+  async updateProfile(profileData: {
+    fullName?: string;
+    username?: string; // Added from the 'feats' branch functionality
+    bio?: string;
+    location?: string;
+    homeAirport?: string;
+    passportCountry?: string;
+  }): Promise<ApiResponse> {
     return this.makeRequest(`${this.baseUrl}/profile`, {
       method: 'PATCH',
       body: JSON.stringify(profileData),

@@ -83,6 +83,12 @@ input, textarea {
   padding: 0 20px;
 }
 
+/* Loading spinner animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   :root {
