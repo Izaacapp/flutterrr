@@ -7,6 +7,7 @@ import { userService } from '../services/user.service';
 import BookmarkService from '../services/bookmark.service';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { PostCard } from '../components/feed/PostCard';
+import { EditProfile } from '../components/profile/EditProfile';
 
 export const Profile: React.FC = () => {
   const { username } = useParams();
@@ -27,6 +28,7 @@ export const Profile: React.FC = () => {
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [bookmarks, setBookmarks] = useState<any[]>([]);
   const [bookmarksLoading, setBookmarksLoading] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   
   const isOwnProfile = !username || username === currentUser?.username;
@@ -108,6 +110,13 @@ export const Profile: React.FC = () => {
       fetchBookmarks();
     }
   }, [showBookmarks, isOwnProfile]);
+
+  const handleProfileUpdate = (updatedUser: any) => {
+    setProfileUser(updatedUser);
+    if (updateUser) {
+      updateUser(updatedUser);
+    }
+  };
 
   // Close options menu when clicking outside
   useEffect(() => {
@@ -537,9 +546,90 @@ export const Profile: React.FC = () => {
         <h1 style={{ fontSize: '2rem', fontWeight: '600', marginBottom: '0.5rem', color: '#1f2937' }}>
           @{user?.username}
         </h1>
-        <p style={{ fontSize: '1.125rem', color: '#6b7280', marginBottom: '1rem' }}>
+        <p style={{ fontSize: '1.125rem', color: '#6b7280', marginBottom: user?.bio ? '0.5rem' : '1rem' }}>
           {user?.fullName}
         </p>
+        
+        {/* Bio */}
+        {user?.bio && (
+          <p style={{ 
+            fontSize: '1rem', 
+            color: '#374151', 
+            marginBottom: '1rem',
+            fontStyle: 'italic',
+            textAlign: 'center',
+            maxWidth: '400px',
+            margin: '0 auto 1rem auto'
+          }}>
+            "{user.bio}"
+          </p>
+        )}
+        
+        {/* Location & Home Airport */}
+        {(user?.location || user?.homeAirport) && (
+          <div style={{
+            display: 'flex',
+            gap: '1rem',
+            justifyContent: 'center',
+            marginBottom: '1rem',
+            fontSize: '0.875rem',
+            color: '#6b7280'
+          }}>
+            {user?.location && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+                {user.location}
+              </div>
+            )}
+            {user?.homeAirport && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 5 21 5s-1 0-2.5 1.5L15 10l-8.2-1.8c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-5 2c-.6.3-.6 1.2 0 1.5L8 17l4-2 1.2 3.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1"/>
+                </svg>
+                {user.homeAirport}
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Edit Profile Button - Only for own profile */}
+        {isOwnProfile && (
+          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+            <button
+              onClick={() => setShowEditProfile(true)}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: 'transparent',
+                border: '1px solid var(--pb-medium-purple)',
+                borderRadius: '6px',
+                color: 'var(--pb-medium-purple)',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--pb-medium-purple)';
+                e.currentTarget.style.color = 'white';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = 'var(--pb-medium-purple)';
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Edit Profile
+            </button>
+          </div>
+        )}
         
         {/* Follow/Following Stats */}
         <div style={{ 
@@ -1011,6 +1101,16 @@ export const Profile: React.FC = () => {
         onConfirm={handleBlockToggle}
         onCancel={() => setShowBlockConfirm(false)}
       />
+
+      {/* Edit Profile Modal */}
+      {user && (
+        <EditProfile
+          isOpen={showEditProfile}
+          onClose={() => setShowEditProfile(false)}
+          user={user}
+          onUpdate={handleProfileUpdate}
+        />
+      )}
     </div>
   );
 };
