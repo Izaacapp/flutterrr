@@ -34,6 +34,7 @@ export interface IUser extends Document {
   followers?: Schema.Types.ObjectId[];
   following?: Schema.Types.ObjectId[];
   blockedUsers?: Schema.Types.ObjectId[];
+  bookmarks?: Schema.Types.ObjectId[];
   isAdmin: boolean;
   emailVerified: boolean;
   // OTP fields for email verification
@@ -135,6 +136,10 @@ const userSchema = new Schema<IUser>({
   blockedUsers: [{
     type: Schema.Types.ObjectId,
     ref: 'User',
+  }],
+  bookmarks: [{
+    type: Schema.Types.ObjectId,
+    ref: 'Post',
   }],
   isAdmin: {
     type: Boolean,

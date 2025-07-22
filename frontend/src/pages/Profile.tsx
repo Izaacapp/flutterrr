@@ -4,7 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { useFileUpload } from '../hooks/useFileUpload';
 import { useToast } from '../contexts/ToastContext';
 import { userService } from '../services/user.service';
+import BookmarkService from '../services/bookmark.service';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { PostCard } from '../components/feed/PostCard';
 
 export const Profile: React.FC = () => {
   const { username } = useParams();
@@ -22,6 +24,9 @@ export const Profile: React.FC = () => {
   const [isBlockLoading, setIsBlockLoading] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const [bookmarksLoading, setBookmarksLoading] = useState(false);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   
   const isOwnProfile = !username || username === currentUser?.username;
@@ -79,6 +84,30 @@ export const Profile: React.FC = () => {
 
     fetchUserProfile();
   }, [username, isOwnProfile, navigate, showToast]);
+
+  const fetchBookmarks = async () => {
+    if (!isOwnProfile) return;
+    
+    setBookmarksLoading(true);
+    try {
+      const response = await BookmarkService.getBookmarks(1, 20);
+      if (response.status === 'success' && response.data) {
+        setBookmarks(response.data.bookmarks);
+      }
+    } catch (error) {
+      console.error('Error fetching bookmarks:', error);
+      showToast('Failed to load bookmarks', 'error');
+    } finally {
+      setBookmarksLoading(false);
+    }
+  };
+
+  // Fetch bookmarks when showing bookmarks section
+  useEffect(() => {
+    if (showBookmarks && isOwnProfile) {
+      fetchBookmarks();
+    }
+  }, [showBookmarks, isOwnProfile]);
 
   // Close options menu when clicking outside
   useEffect(() => {
@@ -584,6 +613,107 @@ export const Profile: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Bookmarks Section - Only for own profile */}
+      {isOwnProfile && (
+        <div style={{
+          backgroundColor: 'var(--pb-white)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          boxShadow: '0 2px 8px rgba(139, 86, 192, 0.1)',
+          marginBottom: '1.5rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '1.5rem'
+          }}>
+            <h2 style={{
+              fontSize: '1.5rem',
+              fontWeight: '600',
+              margin: 0,
+              color: 'var(--pb-dark-purple)'
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '0.5rem', verticalAlign: 'middle' }}>
+                <path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/>
+              </svg>
+              Bookmarked Posts
+            </h2>
+            <button
+              onClick={() => setShowBookmarks(!showBookmarks)}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: 'var(--pb-medium-purple)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                fontSize: '0.875rem',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--pb-dark-purple)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'var(--pb-medium-purple)';
+              }}
+            >
+              {showBookmarks ? 'Hide Bookmarks' : 'View Bookmarks'}
+            </button>
+          </div>
+
+          {showBookmarks && (
+            <div>
+              {bookmarksLoading ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '3rem 1rem'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    border: '3px solid var(--pb-light-periwinkle)',
+                    borderTop: '3px solid var(--pb-medium-purple)',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    margin: '0 auto'
+                  }}></div>
+                </div>
+              ) : bookmarks.length > 0 ? (
+                <div style={{
+                  display: 'grid',
+                  gap: '1rem'
+                }}>
+                  {bookmarks.map((post) => (
+                    <PostCard 
+                      key={post._id}
+                      post={post}
+                      currentUserId={currentUser?.id}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '3rem 1rem',
+                  color: 'var(--pb-medium-purple)'
+                }}>
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginBottom: '1rem' }}>
+                    <path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z"/>
+                  </svg>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem', fontWeight: '600', color: 'var(--pb-dark-purple)' }}>
+                    No bookmarks yet
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '1rem' }}>
+                    Posts you bookmark will appear here so you can easily find them later!
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Travel Statistics */}
       <div style={{ 

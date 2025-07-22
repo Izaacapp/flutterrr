@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../../middleware/auth';
-import { updateProfile, getProfile, uploadAvatar, getProfileByUsername, followUser, unfollowUser, blockUser, unblockUser } from '../../controllers/user.controller';
+import { updateProfile, getProfile, uploadAvatar, getProfileByUsername, followUser, unfollowUser, blockUser, unblockUser, bookmarkPost, unbookmarkPost, getBookmarks } from '../../controllers/user.controller';
 import { uploadAvatar as uploadAvatarMiddleware, processAndUploadAvatar } from '../../middleware/upload.middleware';
 
 const router = Router();
@@ -21,6 +21,11 @@ router.delete('/follow/:userId', authenticate, unfollowUser);
 // Block/unblock user
 router.post('/block/:userId', authenticate, blockUser);
 router.delete('/block/:userId', authenticate, unblockUser);
+
+// Bookmark/unbookmark posts
+router.post('/bookmark/:postId', authenticate, bookmarkPost);
+router.delete('/bookmark/:postId', authenticate, unbookmarkPost);
+router.get('/bookmarks', authenticate, getBookmarks);
 
 // Get profile by ID
 router.get('/profile/:userId?', authenticate, getProfile);

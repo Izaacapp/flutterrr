@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
+import Post from '../models/Post';
 import { NotificationService } from '../services/notification.service';
 import AppError from '../utils/appError';
 import catchAsync from '../utils/catchAsync';
@@ -297,5 +298,117 @@ export const unblockUser = catchAsync(async (req: AuthRequest, res: Response, ne
   res.status(200).json({
     status: 'success',
     message: 'User unblocked successfully'
+  });
+});
+
+export const bookmarkPost = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const { postId } = req.params;
+  const currentUserId = req.userId;
+
+  if (!currentUserId) {
+    return next(new AppError('User not authenticated', 401));
+  }
+
+  const post = await Post.findById(postId);
+  if (!post) {
+    return next(new AppError('Post not found', 404));
+  }
+
+  const user = await User.findById(currentUserId);
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  // Check if post is already bookmarked
+  const isBookmarked = user.bookmarks?.includes(postId as any);
+  if (isBookmarked) {
+    return next(new AppError('Post is already bookmarked', 400));
+  }
+
+  // Add post to bookmarks
+  await User.findByIdAndUpdate(currentUserId, {
+    $addToSet: { bookmarks: postId }
+  });
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Post bookmarked successfully'
+  });
+});
+
+export const unbookmarkPost = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const { postId } = req.params;
+  const currentUserId = req.userId;
+
+  if (!currentUserId) {
+    return next(new AppError('User not authenticated', 401));
+  }
+
+  const user = await User.findById(currentUserId);
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  // Check if post is bookmarked
+  const isBookmarked = user.bookmarks?.includes(postId as any);
+  if (!isBookmarked) {
+    return next(new AppError('Post is not bookmarked', 400));
+  }
+
+  // Remove post from bookmarks
+  await User.findByIdAndUpdate(currentUserId, {
+    $pull: { bookmarks: postId }
+  });
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Post removed from bookmarks successfully'
+  });
+});
+
+export const getBookmarks = catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
+  const currentUserId = req.userId;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const skip = (page - 1) * limit;
+
+  if (!currentUserId) {
+    return next(new AppError('User not authenticated', 401));
+  }
+
+  const user = await User.findById(currentUserId)
+    .populate({
+      path: 'bookmarks',
+      populate: {
+        path: 'author',
+        select: 'username fullName avatar'
+      },
+      options: {
+        sort: { createdAt: -1 },
+        skip: skip,
+        limit: limit
+      }
+    })
+    .select('bookmarks');
+
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  // Get total bookmarks count for pagination
+  const totalBookmarks = user.bookmarks?.length || 0;
+  const totalPages = Math.ceil(totalBookmarks / limit);
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      bookmarks: user.bookmarks || [],
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalBookmarks,
+        hasMore: page < totalPages
+      }
+    }
   });
 });
