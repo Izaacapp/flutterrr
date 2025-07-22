@@ -3,7 +3,7 @@ import { createPost, getPosts, likeOrDislikePost, addComment, deleteComment, del
 import { validate, requestSchema } from '../../middleware/validation.middleware';
 import { uploadImages, processAndUploadImages } from '../../middleware/upload.middleware';
 import { authenticate } from '../../middleware/auth.middleware';
-import { createPostSchema } from '@my-app/shared';
+// import { createPostSchema } from '@my-app/shared';
 
 const router = Router();
 
