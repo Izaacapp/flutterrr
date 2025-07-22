@@ -15,8 +15,166 @@ import '../../../../widgets/avatar.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
 
-class FeedScreen extends StatelessWidget {
+class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
+
+  @override
+  State<FeedScreen> createState() => _FeedScreenState();
+}
+
+class _FeedScreenState extends State<FeedScreen> {
+  
+  void _handleDeletePost(BuildContext context, String postId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange[700],
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Delete Post?',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'SF Pro Display',
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'This action cannot be undone. Are you sure you want to delete this post?',
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              fontFamily: 'SF Pro Text',
+              letterSpacing: -0.2,
+              color: Colors.black87,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                  fontFamily: 'SF Pro Text',
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _confirmDeletePost(context, postId);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Delete',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'SF Pro Text',
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  Future<void> _confirmDeletePost(BuildContext context, String postId) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.mediumPurple,
+          ),
+        );
+      },
+    );
+    
+    try {
+      await PostService.deletePost(postId);
+      
+      if (context.mounted) {
+        Navigator.pop(context); // Dismiss loading
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                const Text('Post deleted successfully'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Dismiss loading
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Failed to delete post',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    }
+  }
 
   void _sharePost(BuildContext context, Map<String, dynamic> post) async {
     final String postId = post['_id'] ?? '';
@@ -326,7 +484,6 @@ class FeedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('📱 Building FeedScreen');
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -500,11 +657,58 @@ class FeedScreen extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              // More options button
-                              IconButton(
-                                icon: const Icon(Icons.more_horiz),
-                                color: AppColors.mediumPurple,
-                                onPressed: () {},
+                              // More options button - only show for post author
+                              FutureBuilder<String?>(
+                                future: SharedPreferences.getInstance().then((prefs) {
+                                  final userJson = prefs.getString('passport_buddy_user');
+                                  if (userJson != null) {
+                                    final userData = jsonDecode(userJson);
+                                    return userData['id'];
+                                  }
+                                  return null;
+                                }),
+                                builder: (context, snapshot) {
+                                  final currentUserId = snapshot.data;
+                                  final postAuthorId = post['author']?['_id'];
+                                  
+                                  // Show menu only for post author
+                                  if (currentUserId != null && postAuthorId != null && currentUserId.toString() == postAuthorId.toString()) {
+                                    return PopupMenuButton<String>(
+                                      icon: Icon(Icons.more_horiz, color: AppColors.mediumPurple),
+                                      offset: const Offset(0, 40),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      onSelected: (String value) {
+                                        if (value == 'delete') {
+                                          _handleDeletePost(context, post['_id']);
+                                        }
+                                      },
+                                      itemBuilder: (BuildContext context) => [
+                                        PopupMenuItem<String>(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete_outline, color: Colors.red[600], size: 20),
+                                              const SizedBox(width: 12),
+                                              Text(
+                                                'Delete Post',
+                                                style: TextStyle(
+                                                  color: Colors.red[600],
+                                                  fontSize: 15,
+                                                  fontFamily: 'SF Pro Text',
+                                                  fontWeight: FontWeight.w500,
+                                                  letterSpacing: -0.2,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                },
                               ),
                             ],
                           ),
