@@ -1,13 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import '../providers/auth_provider.dart';
 import '../core/theme/app_theme.dart';
-import '../features/feed/data/graphql/post_queries.dart';
 import '../core/config/app_config.dart';
+import '../widgets/avatar.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -24,22 +23,6 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void dispose() {
     super.dispose();
-  }
-
-  Color _getAvatarColor(String? avatarUrl) {
-    if (avatarUrl == null || avatarUrl.isEmpty) {
-      return AppColors.mediumPurple;
-    }
-    
-    final backgroundMatch = RegExp(r'background=([a-fA-F0-9]{6})').firstMatch(avatarUrl);
-    if (backgroundMatch != null) {
-      final colorHex = backgroundMatch.group(1);
-      if (colorHex != null) {
-        return Color(int.parse('FF$colorHex', radix: 16));
-      }
-    }
-    
-    return AppColors.mediumPurple;
   }
 
   @override
@@ -61,56 +44,23 @@ class _ProfilePageState extends State<ProfilePage> {
                 onTap: _selectedImage == null ? _showImagePickerOptions : null,
                 child: Stack(
                   children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.grey[200],
-                      ),
-                      clipBehavior: Clip.antiAlias,
+                    ClipOval(
                       child: _selectedImage != null
-                          ? Image.file(
-                              _selectedImage!,
-                              fit: BoxFit.cover,
+                          ? SizedBox(
                               width: 120,
                               height: 120,
+                              child: Image.file(
+                                _selectedImage!,
+                                fit: BoxFit.cover,
+                                width: 120,
+                                height: 120,
+                              ),
                             )
-                          : user?.avatar != null && user!.avatar!.isNotEmpty
-                              ? Image.network(
-                                  user!.avatar!,
-                                  fit: BoxFit.cover,
-                                  width: 120,
-                                  height: 120,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      color: _getAvatarColor(user.avatar),
-                                      child: Center(
-                                        child: Text(
-                                          user.username?.substring(0, 1).toUpperCase() ?? 'U',
-                                          style: const TextStyle(
-                                            fontSize: 48,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                )
-                              : Container(
-                                  color: _getAvatarColor(user?.avatar),
-                                  child: Center(
-                                    child: Text(
-                                      user?.username?.substring(0, 1).toUpperCase() ?? 'U',
-                                      style: const TextStyle(
-                                        fontSize: 48,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                          : Avatar(
+                              imageUrl: user?.avatar,
+                              name: user?.fullName ?? user?.username ?? 'User',
+                              size: 120,
+                            ),
                     ),
                     if (_selectedImage == null)
                       Positioned(

@@ -1,5 +1,5 @@
-name: mobile
-description: "A new Flutter project."
+name: passport_buddy
+description: "Connect with fellow travelers and share your adventures"
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 version: 1.0.0+1
@@ -19,15 +19,19 @@ dependencies:
   graphql_flutter: ^5.2.0
   flutter_dotenv: ^5.1.0
   dio: ^5.3.3
+  http: ^1.1.0
+  http_parser: ^4.0.2
 
   # Utility
   intl: ^0.20.2
   
   # Media
   image_picker: ^1.0.4
+  share_plus: ^10.1.3
   
   # Storage
   shared_preferences: ^2.2.2
+  path_provider: ^2.1.5
   
   # State Management
   provider: ^6.1.1
@@ -47,9 +51,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
 
-  # Assets section - currently empty since we use dart-define for configuration
-  # assets:
-  #   - images/
+  # Assets section
+  assets:
+    - .env
 
   # To add assets to your application, add an assets section, like this:
   # assets:

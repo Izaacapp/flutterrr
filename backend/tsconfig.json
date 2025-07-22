@@ -10,11 +10,18 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "typeRoots": ["./node_modules/@types", "./src/types"],
-    "types": ["node", "express", "jest"]
+    "types": ["node", "express", "jest"],
+    "baseUrl": "./",
+    "paths": {
+      "@my-app/shared": ["../shared/src"],
+      "@my-app/shared/*": ["../shared/src/*"]
+    }
   },
   "include": ["src/**/*", "test/**/*"],
   "files": ["./src/types/express/index.d.ts"],
   "ts-node": {
-    "files": true
+    "files": true,
+    "transpileOnly": true,
+    "require": ["tsconfig-paths/register"]
   }
 }

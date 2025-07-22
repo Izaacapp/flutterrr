@@ -10,9 +10,385 @@ import '../../../../services/post_service.dart';
 import '../../data/graphql/post_queries.dart';
 import 'create_post_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../widgets/like_button.dart';
+import '../../../../widgets/avatar.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:flutter/services.dart';
+import '../../../../pages/user_profile_page.dart';
 
-class FeedScreen extends StatelessWidget {
+class FeedScreen extends StatefulWidget {
   const FeedScreen({super.key});
+
+  @override
+  State<FeedScreen> createState() => _FeedScreenState();
+}
+
+class _FeedScreenState extends State<FeedScreen> {
+  final Map<String, bool> _expandedComments = {};
+  final Map<String, TextEditingController> _commentControllers = {};
+  final Map<String, bool> _isAddingComment = {};
+  
+  @override
+  void dispose() {
+    // Dispose all text controllers
+    for (final controller in _commentControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+  
+  void _handleDeletePost(BuildContext context, String postId) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange[700],
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Delete Post?',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'SF Pro Display',
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'This action cannot be undone. Are you sure you want to delete this post?',
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              fontFamily: 'SF Pro Text',
+              letterSpacing: -0.2,
+              color: Colors.black87,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                  fontFamily: 'SF Pro Text',
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _confirmDeletePost(context, postId);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Delete',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'SF Pro Text',
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  Future<void> _confirmDeletePost(BuildContext context, String postId) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.mediumPurple,
+          ),
+        );
+      },
+    );
+    
+    try {
+      await PostService.deletePost(postId);
+      
+      if (context.mounted) {
+        Navigator.pop(context); // Dismiss loading
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                const SizedBox(width: 12),
+                const Text('Post deleted successfully'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Dismiss loading
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Failed to delete post',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _sharePost(BuildContext context, Map<String, dynamic> post) async {
+    final String postId = post['_id'] ?? '';
+    final String username = post['author']?['username'] ?? 'user';
+    final String content = post['content'] ?? '';
+    
+    // Create post URL matching web implementation
+    const String baseUrl = 'https://xbullet.me';
+    final String postUrl = '$baseUrl/post/$postId';
+    
+    // Show share options bottom sheet
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          margin: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Title
+                Text(
+                  'Share Post',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                
+                // Share options
+                _buildShareOption(
+                  icon: Icons.share,
+                  title: 'Share via...',
+                  subtitle: 'Share using other apps',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    try {
+                      await Share.share(
+                        postUrl,
+                        subject: 'Post by $username',
+                      );
+                    } catch (e) {
+                      // Silent error handling
+                    }
+                  },
+                ),
+                
+                _buildShareOption(
+                  icon: Icons.link,
+                  title: 'Copy Link',
+                  subtitle: 'Copy post link to clipboard',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    try {
+                      await Clipboard.setData(ClipboardData(text: postUrl));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Link copied!'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      // Silent error handling
+                    }
+                  },
+                ),
+                
+                _buildShareOption(
+                  icon: Icons.content_copy,
+                  title: 'Copy Text',
+                  subtitle: 'Copy post content',
+                  onTap: () async {
+                    Navigator.pop(context);
+                    try {
+                      await Clipboard.setData(ClipboardData(text: content));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Text copied!'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      // Silent error handling
+                    }
+                  },
+                ),
+                
+                const SizedBox(height: 8),
+                
+                // Cancel button
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: AppColors.mediumPurple,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  
+  Widget _buildShareOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.ultraLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.mediumPurple,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: Colors.grey[400],
+              size: 24,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildCreatePostTrigger(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -36,7 +412,7 @@ class FeedScreen extends StatelessWidget {
           border: Border.all(color: Colors.grey[200]!),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 2,
               offset: const Offset(0, 1),
             ),
@@ -45,63 +421,10 @@ class FeedScreen extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.grey[200],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: user?.avatar != null && user!.avatar!.isNotEmpty
-                  ? Image.network(
-                      user!.avatar!,
-                      fit: BoxFit.cover,
-                      width: 40,
-                      height: 40,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.mediumPurple,
-                                AppColors.periwinkle,
-                              ],
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              _getUserInitials(user),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    )
-                  : Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.mediumPurple,
-                            AppColors.periwinkle,
-                          ],
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _getUserInitials(user),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ),
-                    ),
+            Avatar(
+              imageUrl: user?.avatar,
+              name: user?.fullName ?? user?.username ?? 'User',
+              size: 40,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -174,7 +497,6 @@ class FeedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('📱 Building FeedScreen');
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -226,7 +548,7 @@ class FeedScreen extends StatelessWidget {
         options: QueryOptions(
           document: gql(getPostsQuery),
           pollInterval: const Duration(seconds: 3), // Auto refresh every 3 seconds
-          fetchPolicy: FetchPolicy.noCache, // Always fetch from network, no caching
+          fetchPolicy: FetchPolicy.networkOnly, // Always fetch from network, no caching
         ),
         builder: (QueryResult result, {VoidCallback? refetch, FetchMore? fetchMore}) {
           // Handle errors
@@ -304,13 +626,13 @@ class FeedScreen extends StatelessWidget {
                 
                 final post = posts[index - 1 - (posts.isEmpty ? 1 : 0)]; // Adjust index for posts and welcome message
                 return Card(
-                  margin: const EdgeInsets.all(8.0),
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppColors.lightPeriwinkle, width: 1),
-                  ),
-                  child: Column(
+                    margin: const EdgeInsets.all(8.0),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: AppColors.lightPeriwinkle, width: 1),
+                    ),
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Author Header
@@ -320,50 +642,24 @@ class FeedScreen extends StatelessWidget {
                           child: Row(
                             children: [
                               // Avatar
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.grey[200],
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: post['author']['avatar'] != null && post['author']['avatar'].toString().isNotEmpty
-                                  ? Image.network(
-                                      post['author']['avatar'],
-                                      fit: BoxFit.cover,
-                                      width: 40,
-                                      height: 40,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        // Fall back to initials on error
-                                        return Container(
-                                          color: _getAvatarColor(post['author']['avatar']),
-                                          child: Center(
-                                            child: Text(
-                                              _getInitials(post['author']),
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Container(
-                                      color: _getAvatarColor(post['author']['avatar']),
-                                      child: Center(
-                                        child: Text(
-                                          _getInitials(post['author']),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 16,
-                                          ),
-                                        ),
+                              GestureDetector(
+                                onTap: () {
+                                  // Navigate to user profile
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => UserProfilePage(
+                                        userId: post['author']['_id'],
+                                        username: post['author']['username'] ?? 'anonymous',
                                       ),
                                     ),
+                                  );
+                                },
+                                child: Avatar(
+                                  imageUrl: post['author']['avatar'],
+                                  name: post['author']['fullName'] ?? post['author']['username'] ?? 'User',
+                                  size: 40,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               // Username and time
@@ -371,11 +667,26 @@ class FeedScreen extends StatelessWidget {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      post['author']['username'] ?? 'anonymous',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
+                                    GestureDetector(
+                                      onTap: () {
+                                        // Navigate to user profile
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => UserProfilePage(
+                                              userId: post['author']['_id'],
+                                              username: post['author']['username'] ?? 'anonymous',
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: Text(
+                                        post['author']['username'] ?? 'anonymous',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 14,
+                                          color: AppColors.darkPurple,
+                                        ),
                                       ),
                                     ),
                                     Text(
@@ -388,11 +699,58 @@ class FeedScreen extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              // More options button
-                              IconButton(
-                                icon: const Icon(Icons.more_horiz),
-                                color: AppColors.mediumPurple,
-                                onPressed: () {},
+                              // More options button - only show for post author
+                              FutureBuilder<String?>(
+                                future: SharedPreferences.getInstance().then((prefs) {
+                                  final userJson = prefs.getString('passport_buddy_user');
+                                  if (userJson != null) {
+                                    final userData = jsonDecode(userJson);
+                                    return userData['id'];
+                                  }
+                                  return null;
+                                }),
+                                builder: (context, snapshot) {
+                                  final currentUserId = snapshot.data;
+                                  final postAuthorId = post['author']?['_id'];
+                                  
+                                  // Show menu only for post author
+                                  if (currentUserId != null && postAuthorId != null && currentUserId.toString() == postAuthorId.toString()) {
+                                    return PopupMenuButton<String>(
+                                      icon: Icon(Icons.more_horiz, color: AppColors.mediumPurple),
+                                      offset: const Offset(0, 40),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      onSelected: (String value) {
+                                        if (value == 'delete') {
+                                          _handleDeletePost(context, post['_id']);
+                                        }
+                                      },
+                                      itemBuilder: (BuildContext context) => [
+                                        PopupMenuItem<String>(
+                                          value: 'delete',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete_outline, color: Colors.red[600], size: 20),
+                                              const SizedBox(width: 12),
+                                              Text(
+                                                'Delete Post',
+                                                style: TextStyle(
+                                                  color: Colors.red[600],
+                                                  fontSize: 15,
+                                                  fontFamily: 'SF Pro Text',
+                                                  fontWeight: FontWeight.w500,
+                                                  letterSpacing: -0.2,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                },
                               ),
                             ],
                           ),
@@ -414,11 +772,32 @@ class FeedScreen extends StatelessWidget {
                               itemCount: (post['images'] as List).length,
                               itemBuilder: (context, imageIndex) {
                                 final image = post['images'][imageIndex];
-                                print('Feed image URL: ${image['url']}');
                                 return GestureDetector(
+                                  onDoubleTap: () async {
+                                    // Double tap to like
+                                    final prefs = await SharedPreferences.getInstance();
+                                    final userJson = prefs.getString('passport_buddy_user');
+                                    if (userJson != null) {
+                                      final userData = jsonDecode(userJson);
+                                      final currentUserId = userData['id'];
+                                      final likes = post['likes'] as List? ?? [];
+                                      final likesList = likes.map((e) => e.toString()).toList();
+                                      final isLiked = likesList.contains(currentUserId);
+                                      
+                                      // Only like if not already liked
+                                      if (!isLiked) {
+                                        try {
+                                          await PostService.toggleLike(post['_id']);
+                                          if (refetch != null) {
+                                            refetch();
+                                          }
+                                        } catch (e) {
+                                          // Silent error handling for double tap
+                                        }
+                                      }
+                                    }
+                                  },
                                   onTap: () {
-                                    // Debug: Print the image URL
-                                    print('Opening image URL: ${image['url']}');
                                     
                                     // Open image in full screen
                                     Navigator.push(
@@ -435,7 +814,6 @@ class FeedScreen extends StatelessWidget {
                                               child: Image.network(
                                                 image['url'],
                                                 errorBuilder: (context, error, stackTrace) {
-                                                  print('Image load error: $error');
                                                   return Column(
                                                     mainAxisAlignment: MainAxisAlignment.center,
                                                     children: [
@@ -512,11 +890,8 @@ class FeedScreen extends StatelessWidget {
                                 final likesList = likes.map((e) => e.toString()).toList();
                                 final isLiked = currentUserId != null && likesList.contains(currentUserId);
                                 
-                                return IconButton(
-                                  icon: Icon(
-                                    isLiked ? Icons.favorite : Icons.favorite_border,
-                                    color: isLiked ? Colors.red : AppColors.mediumPurple,
-                                  ),
+                                return LikeButton(
+                                  isLiked: isLiked,
                                   onPressed: () async {
                                     try {
                                       await PostService.toggleLike(post['_id']);
@@ -526,7 +901,6 @@ class FeedScreen extends StatelessWidget {
                                         refetch();
                                       }
                                     } catch (e) {
-                                      print('Error toggling like: $e');
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(content: Text('Failed to like post: $e')),
                                       );
@@ -542,14 +916,20 @@ class FeedScreen extends StatelessWidget {
                                 painter: CircularCommentPainter(color: AppColors.mediumPurple),
                               ),
                               onPressed: () {
-                                // TODO: Implement comment functionality
+                                setState(() {
+                                  final postId = post['_id'];
+                                  _expandedComments[postId] = !(_expandedComments[postId] ?? false);
+                                  if (_expandedComments[postId]! && !_commentControllers.containsKey(postId)) {
+                                    _commentControllers[postId] = TextEditingController();
+                                  }
+                                });
                               },
                             ),
                             // Share button
                             IconButton(
                               icon: const Icon(Icons.share_outlined, color: AppColors.mediumPurple),
                               onPressed: () {
-                                // TODO: Implement share functionality
+                                _sharePost(context, post);
                               },
                             ),
                             const Spacer(),
@@ -563,18 +943,117 @@ class FeedScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      // Likes count
+                      // Likes and comments count
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          '${(post['likes'] as List? ?? []).length} likes',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.darkPurple,
-                          ),
+                        child: Row(
+                          children: [
+                            Text(
+                              '${(post['likes'] as List? ?? []).length} likes',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.darkPurple,
+                              ),
+                            ),
+                            if ((post['comments'] as List? ?? []).isNotEmpty) ...[
+                              const SizedBox(width: 16),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    final postId = post['_id'];
+                                    _expandedComments[postId] = !(_expandedComments[postId] ?? false);
+                                    if (_expandedComments[postId]! && !_commentControllers.containsKey(postId)) {
+                                      _commentControllers[postId] = TextEditingController();
+                                    }
+                                  });
+                                },
+                                child: Text(
+                                  '${(post['comments'] as List).length} ${(post['comments'] as List).length == 1 ? 'comment' : 'comments'}',
+                                  style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       const SizedBox(height: 8),
+                      
+                      // Comments section
+                      if (_expandedComments[post['_id']] ?? false) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Comment input
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _commentControllers[post['_id']],
+                                      decoration: InputDecoration(
+                                        hintText: 'Add a comment...',
+                                        hintStyle: TextStyle(color: Colors.grey[500]),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: BorderSide(color: Colors.grey[300]!),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: BorderSide(color: Colors.grey[300]!),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: BorderSide(color: AppColors.mediumPurple, width: 2),
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      ),
+                                      maxLines: null,
+                                      textInputAction: TextInputAction.send,
+                                      onSubmitted: (value) => _addComment(post['_id'], refetch),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    onPressed: (_isAddingComment[post['_id']] ?? false) 
+                                        ? null 
+                                        : () => _addComment(post['_id'], refetch),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.mediumPurple,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    ),
+                                    child: (_isAddingComment[post['_id']] ?? false)
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text('Post'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              
+                              // Comments list
+                              if (post['comments'] != null && (post['comments'] as List).isNotEmpty) ...[
+                                ...(post['comments'] as List).map((comment) => 
+                                  _buildComment(comment, post, refetch)
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ],
                   ),
                 );
@@ -608,47 +1087,173 @@ class FeedScreen extends StatelessWidget {
     }
   }
   
-  String _getInitials(dynamic author) {
-    if (author == null) return 'U';
+  Future<void> _addComment(String postId, VoidCallback? refetch) async {
+    final controller = _commentControllers[postId];
+    if (controller == null || controller.text.trim().isEmpty) return;
     
-    final fullName = author['fullName'] ?? author['username'] ?? 'User';
-    final names = fullName.toString().split(' ');
+    setState(() {
+      _isAddingComment[postId] = true;
+    });
     
-    if (names.length > 1) {
-      return '${names[0][0]}${names[names.length - 1][0]}'.toUpperCase();
-    }
-    return fullName.toString()[0].toUpperCase();
-  }
-  
-  String _getUserInitials(dynamic user) {
-    if (user == null) return 'U';
-    
-    final fullName = user.fullName ?? user.username ?? 'User';
-    final names = fullName.toString().split(' ');
-    
-    if (names.length > 1) {
-      return '${names[0][0]}${names[names.length - 1][0]}'.toUpperCase();
-    }
-    return fullName.toString()[0].toUpperCase();
-  }
-  
-  Color _getAvatarColor(String? avatarUrl) {
-    if (avatarUrl == null || avatarUrl.isEmpty) {
-      return AppColors.mediumPurple;
-    }
-    
-    // Try to extract color from ui-avatars URL
-    final backgroundMatch = RegExp(r'background=([a-fA-F0-9]{6})').firstMatch(avatarUrl);
-    if (backgroundMatch != null) {
-      final colorHex = backgroundMatch.group(1);
-      if (colorHex != null) {
-        return Color(int.parse('FF$colorHex', radix: 16));
+    try {
+      await PostService.addComment(postId, controller.text.trim());
+      controller.clear();
+      if (refetch != null) {
+        refetch();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Comment added'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to add comment'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAddingComment[postId] = false;
+        });
       }
     }
-    
-    // Default fallback color
-    return AppColors.mediumPurple;
   }
+  
+  Future<void> _deleteComment(String postId, String commentId, VoidCallback? refetch) async {
+    try {
+      await PostService.deleteComment(postId, commentId);
+      if (refetch != null) {
+        refetch();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Comment deleted'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to delete comment'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  Widget _buildComment(Map<String, dynamic> comment, Map<String, dynamic> post, VoidCallback? refetch) {
+    // Handle null author data
+    final author = comment['author'] as Map<String, dynamic>?;
+    final username = author?['username'] ?? 'anonymous';
+    final fullName = author?['fullName'];
+    final avatar = author?['avatar'];
+    
+    return FutureBuilder<String?>(
+      future: SharedPreferences.getInstance().then((prefs) {
+        final userJson = prefs.getString('passport_buddy_user');
+        if (userJson != null) {
+          final userData = jsonDecode(userJson);
+          return userData['id'];
+        }
+        return null;
+      }),
+      builder: (context, snapshot) {
+        final currentUserId = snapshot.data;
+        final commentAuthorId = author?['_id'];
+        final postAuthorId = post['author']?['_id'];
+        final canDelete = currentUserId != null && 
+            (currentUserId == commentAuthorId || currentUserId == postAuthorId);
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Comment author avatar
+              Avatar(
+                imageUrl: avatar,
+                name: fullName ?? username,
+                size: 32,
+              ),
+              const SizedBox(width: 8),
+              // Comment content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          username,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatDate(comment['createdAt']),
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      comment['content'] ?? '',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              // Delete button
+              if (canDelete)
+                IconButton(
+                  icon: Icon(Icons.more_horiz, color: Colors.grey[600], size: 20),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.delete, color: Colors.red),
+                                title: const Text('Delete comment'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  _deleteComment(post['_id'], comment['_id'], refetch);
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  
 }
 
 // Custom painter for circular comment icon (matches web)
