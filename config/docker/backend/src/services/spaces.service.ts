@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import AWS from 'aws-sdk';
 import sharp from 'sharp';
 import { env } from '../config/env';
@@ -107,7 +109,7 @@ class SpacesService {
           CacheControl: 'public, max-age=31536000', // 1 year cache
           Metadata: {
             originalName: file.originalname,
-            uploadedAt: new Date().toISOString()
+            uploadedAt: strictDateExtraction().toISOString()
           }
         };
         
@@ -155,7 +157,7 @@ class SpacesService {
       CacheControl: 'public, max-age=31536000',
       Metadata: {
         originalName: file.originalname,
-        uploadedAt: new Date().toISOString()
+        uploadedAt: strictDateExtraction().toISOString()
       }
     };
     
@@ -195,7 +197,7 @@ class SpacesService {
       ContentType: file.mimetype,
       Metadata: {
         originalName: file.originalname,
-        uploadedAt: new Date().toISOString()
+        uploadedAt: strictDateExtraction().toISOString()
       }
     };
     

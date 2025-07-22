@@ -1,3 +1,4 @@
+import { strictDateExtraction } from "../utils/dateStrict";
 import { Request, Response } from 'express';
 import Flight, { IFlight } from '../models/Flight';
 import { storageService } from '../services/storage.service';
@@ -6,6 +7,8 @@ import { parseBoardingPassV2, convertToLegacyFormat } from '../utils/boardingPas
 import { parseBoardingPassWithMathpix } from '../utils/boardingPassMathpix';
 import { parseBoardingPassWithTesseract } from '../utils/boardingPassTesseract';
 import { parseBoardingPassWithSimpletex } from '../utils/boardingPassSimpletex';
+import { parseBoardingPassWithSimpletexV2 } from '../utils/boardingPassSimpletexV2';
+import { parseBoardingPassWithSimpletexV3 } from '../utils/boardingPassSimpletexV3';
 import { calculateFlightDistance } from '../utils/distanceCalculator';
 
 export const uploadBoardingPass = async (req: Request, res: Response) => {
@@ -34,12 +37,37 @@ export const uploadBoardingPass = async (req: Request, res: Response) => {
     // Parse boarding pass data - Try SimpleTex first
     let parsedData = null;
     
-    // Try SimpleTex OCR API first
+    // Try SimpleTex OCR API V3 first (with strict handling)
     if (process.env.SIMPLETEX_API_KEY) {
-      console.log('Trying SimpleTex OCR API...');
-      parsedData = await parseBoardingPassWithSimpletex(file.buffer, file.mimetype);
-      if (parsedData) {
-        console.log('SimpleTex OCR succeeded');
+      console.log('Trying SimpleTex OCR API V3 (strict mode)...');
+      const v3Result = await parseBoardingPassWithSimpletexV3(file.buffer, file.mimetype);
+      
+      if (v3Result.success && v3Result.data) {
+        console.log('SimpleTex OCR V3 succeeded with strict validation');
+        parsedData = v3Result.data;
+        
+        // If manual entry required for some fields, include in response
+        if (v3Result.requiresManualEntry) {
+          parsedData.requiresManualEntry = v3Result.requiresManualEntry;
+        }
+      } else if (v3Result.errors) {
+        // V3 failed with specific errors
+        console.log('SimpleTex V3 validation failed:', v3Result.errors);
+        
+        // Return structured error response
+        return res.status(422).json({
+          message: 'Boarding pass parsing incomplete',
+          errors: v3Result.errors,
+          requiresManualEntry: v3Result.requiresManualEntry,
+          partialData: v3Result.data
+        });
+      } else {
+        // Fallback to V2
+        console.log('Trying SimpleTex OCR API V2...');
+        parsedData = await parseBoardingPassWithSimpletexV2(file.buffer, file.mimetype);
+        if (parsedData) {
+          console.log('SimpleTex OCR V2 succeeded');
+        }
       }
     }
     
@@ -124,10 +152,16 @@ export const manualFlightEntry = async (req: Request, res: Response) => {
       }
     }
     
-    // Set default arrival time if not provided (same day, 2 hours later)
-    if (!flightData.scheduledArrivalTime) {
+    // Estimate arrival time if not provided using route-based calculation
+    if (!flightData.scheduledArrivalTime && flightData.origin && flightData.destination) {
+      const { estimateArrivalTime } = require('../services/timeHandling.service');
       const departureDate = new Date(flightData.scheduledDepartureTime);
-      flightData.scheduledArrivalTime = new Date(departureDate.getTime() + 2 * 60 * 60 * 1000); // Add 2 hours
+      flightData.scheduledArrivalTime = estimateArrivalTime(
+        departureDate,
+        flightData.origin.airportCode,
+        flightData.destination.airportCode
+      );
+      console.log(`Estimated arrival time for ${flightData.origin.airportCode}-${flightData.destination.airportCode}`);
     }
 
     // Calculate distance if not provided

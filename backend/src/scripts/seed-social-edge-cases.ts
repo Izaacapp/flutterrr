@@ -1,3 +1,4 @@
+import { strictDateExtraction } from "../utils/dateStrict";
 import mongoose from 'mongoose';
 import User from '../models/User';
 import Post from '../models/Post';
@@ -350,7 +351,7 @@ async function seedSocialEdgeCases() {
       commentPost.comments.push({
         author: createdUsers[Math.floor(Math.random() * createdUsers.length)]._id,
         content: pattern,
-        createdAt: new Date()
+        createdAt: strictDateExtraction()
       });
     }
     await commentPost.save();

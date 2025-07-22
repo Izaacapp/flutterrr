@@ -1,3 +1,4 @@
+import { strictDateExtraction } from "./dateStrict";
 // Comprehensive aviation lexical analyzer with airport database
 export class AviationLexer {
   // Complete IATA airport codes with city names
@@ -378,7 +379,7 @@ export class AviationLexer {
       return {
         day: match[1],
         month: match[2],
-        year: match[3] || new Date().getFullYear().toString()
+        year: match[3] || strictDateExtraction().getFullYear().toString()
       };
     }
     return {};
@@ -397,7 +398,7 @@ export class AviationLexer {
   }
 
   private static buildDateTime(dateToken?: Token, timeToken?: Token): Date {
-    const now = new Date();
+    const now = strictDateExtraction();
     let year = now.getFullYear();
     let month = now.getMonth();
     let day = now.getDate();

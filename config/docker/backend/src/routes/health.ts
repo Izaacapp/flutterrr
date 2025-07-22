@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import express from 'express';
 import mongoose from 'mongoose';
 import { emailService } from '../services/email.service';
@@ -9,7 +11,7 @@ const router = express.Router();
 router.get('/health', async (_req, res) => {
   const checks = {
     status: 'UP',
-    timestamp: new Date(),
+    timestamp: strictDateExtraction(),
     environment: process.env.NODE_ENV,
     services: {
       api: 'UP',
@@ -112,7 +114,7 @@ router.post('/test-email', async (req, res) => {
           to,
           otp,
           provider: process.env.EMAIL_PROVIDER === 'resend' ? 'Resend' : (env.MAILTRAP_TOKEN ? 'Mailtrap' : 'Development Mode'),
-          timestamp: new Date()
+          timestamp: strictDateExtraction()
         }
       });
     } else {

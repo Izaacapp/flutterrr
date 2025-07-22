@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 // Cache for airport data to avoid repeated API calls
 const airportCache: Map<string, { lat: number; lng: number; city?: string; state?: string }> = new Map();
 

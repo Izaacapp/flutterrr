@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import mongoose from 'mongoose';
 import { AuthenticationError } from 'apollo-server-express';
 import Post, { IPost } from '../../../models/Post';
@@ -39,7 +41,7 @@ export default {
               avatar: comment.author.avatar || null
             } : null,
             content: comment.content,
-            createdAt: comment.createdAt ? comment.createdAt.toISOString() : new Date().toISOString()
+            createdAt: comment.createdAt ? comment.createdAt.toISOString() : strictDateExtraction().toISOString()
           })),
           createdAt: post.createdAt.toISOString()
         }));

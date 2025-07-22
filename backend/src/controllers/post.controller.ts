@@ -94,7 +94,7 @@ export const likeOrDislikePost = async (req: Request, res: Response) => {
     }
 
     // Use MongoDB's atomic operations to toggle like in a single query
-    const isLiked = post.likes.some(likeId => likeId.toString() === userId);
+    const isLiked = post.likes.some((likeId: any) => likeId.toString() === userId);
     
     const update = isLiked 
       ? { $pull: { likes: userId } }
@@ -147,7 +147,7 @@ export const addComment = async (req: Request, res: Response) => {
     }
 
     const newComment = {
-      author: new mongoose.Types.ObjectId(userId),
+      author: userId,
       content: content.trim(),
       createdAt: new Date()
     };

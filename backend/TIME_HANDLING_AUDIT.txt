@@ -1,0 +1,257 @@
+🚨 TIME HANDLING AUDIT - ALL THE FUCKING CODE 🚨
+================================================
+
+BRUH HERE'S EVERY SINGLE TIME HANDLING CODE IN THE SYSTEM:
+
+================================================================
+FILE: /src/utils/boardingPassSimpletex.ts
+================================================================
+
+PROBLEM AREA #1 - HARDCODED TIME PATTERNS (lines 128-146):
+-----------------------------------------------------------
+// Extract times - handle various formats including with dashes
+const timePatterns = {
+  departure: [
+    /[-\s]*DEPART(?:URE)?\s*TIME\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i,
+    /DEPART(?:URE)?\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i,
+    /DEP\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i,
+    /LEAVES?\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i
+  ],
+  arrival: [
+    /[-\s]*ARRIV(?:AL)?\s*TIME\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i,
+    /ARRIV(?:AL)?\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i,
+    /ARR\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i,
+    /LANDS?\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i
+  ],
+  boarding: [
+    /[-\s]*BOARDING\s*TIME\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i,
+    /BOARDS?\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i,
+    /BOARD\s*BY\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i
+  ]
+};
+
+PROBLEM AREA #2 - TIME EXTRACTION LOGIC (lines 148-177):
+---------------------------------------------------------
+// Find departure time
+for (const pattern of timePatterns.departure) {
+  const match = normalizedText.match(pattern);
+  if (match) {
+    const date = extractDate(normalizedText) || new Date(); // <-- HARDCODED FALLBACK
+    result.scheduledDepartureTime = parseDateTime(date, match[1]);
+    break;
+  }
+}
+
+// Find arrival time
+for (const pattern of timePatterns.arrival) {
+  const match = normalizedText.match(pattern);
+  if (match) {
+    const date = extractDate(normalizedText) || new Date(); // <-- HARDCODED FALLBACK
+    result.scheduledArrivalTime = parseDateTime(date, match[1]);
+    break;
+  }
+}
+
+PROBLEM AREA #3 - FALLBACK LOGIC (lines 179-222):
+-------------------------------------------------
+// If times not found with context, look for any times
+if (!result.scheduledDepartureTime || !result.scheduledArrivalTime) {
+  const genericTimes = normalizedText.match(/(\d{1,2}:\d{2}\s*[AP]M?)/gi) || [];
+  const date = extractDate(normalizedText) || new Date(); // <-- HARDCODED FALLBACK
+  
+  // Filter out boarding time from generic times
+  const nonBoardingTimes = genericTimes.filter(time => 
+    !boardingTime || time.toUpperCase() !== boardingTime.toUpperCase()
+  );
+  
+  // HARDCODED ASSUMPTION: First time is departure
+  if (nonBoardingTimes.length > 0 && !result.scheduledDepartureTime) {
+    result.scheduledDepartureTime = parseDateTime(date, nonBoardingTimes[0]);
+  }
+  // HARDCODED ASSUMPTION: Second time is arrival
+  if (nonBoardingTimes.length > 1 && !result.scheduledArrivalTime) {
+    result.scheduledArrivalTime = parseDateTime(date, nonBoardingTimes[1]);
+  }
+  
+  // HARDCODED FALLBACK: Estimate arrival as 2 hours after departure
+  if (result.scheduledDepartureTime && !result.scheduledArrivalTime) {
+    result.scheduledArrivalTime = new Date(new Date(result.scheduledDepartureTime).getTime() + 2 * 60 * 60 * 1000);
+  }
+}
+
+PROBLEM AREA #4 - DEFAULT DATE HANDLING (lines 257-260):
+--------------------------------------------------------
+// Validate minimum required data
+if (!result.scheduledDepartureTime) {
+  result.scheduledDepartureTime = new Date(); // <-- HARDCODED TO TODAY
+}
+
+PROBLEM AREA #5 - PARSE DATE TIME FUNCTION (lines 315-336):
+-----------------------------------------------------------
+function parseDateTime(date: Date, timeStr: string): Date {
+  const timeMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*([AP]M?)?/i);
+  if (timeMatch) {
+    let hours = parseInt(timeMatch[1]);
+    const minutes = parseInt(timeMatch[2]);
+    const period = timeMatch[3];
+    
+    if (period) {
+      if (period.toUpperCase().startsWith('P') && hours !== 12) {
+        hours += 12;
+      } else if (period.toUpperCase().startsWith('A') && hours === 12) {
+        hours = 0;
+      }
+    }
+    
+    const result = new Date(date);
+    result.setHours(hours, minutes, 0, 0);
+    return result;
+  }
+  
+  return date; // <-- RETURNS ORIGINAL DATE IF NO TIME FOUND
+}
+
+================================================================
+FILE: /src/utils/boardingPassValidator.ts
+================================================================
+
+PROBLEM AREA #6 - TIME VALIDATION (lines 345-381):
+--------------------------------------------------
+export function validateTime(text: string, type: 'departure' | 'arrival' | 'boarding' = 'departure'): ValidationResult {
+  const timePattern = /\b(\d{1,2}):(\d{2})(?:\s*([AP]M?))?\b/i;
+  const match = text.match(timePattern);
+  
+  if (!match) {
+    return { valid: false };
+  }
+  
+  let hours = parseInt(match[1]);
+  let minutes = parseInt(match[2]);
+  const period = match[3];
+  
+  // Handle invalid times
+  if (hours >= 24) {
+    hours = hours % 24; // <-- HARDCODED MOD 24
+  }
+  
+  if (minutes >= 60) {
+    // HARDCODED OCR ERROR CORRECTIONS:
+    if (minutes === 80) minutes = 30;
+    else if (minutes === 70) minutes = 10;
+    else minutes = minutes % 60;
+  }
+  
+  // Validate AM/PM logic
+  if (period && period.toUpperCase().startsWith('P') && hours < 12) {
+    hours += 12;
+  } else if (period && period.toUpperCase().startsWith('A') && hours === 12) {
+    hours = 0;
+  }
+  
+  const correctedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  const isValid = hours < 24 && minutes < 60;
+  
+  return {
+    valid: isValid,
+    value: correctedTime,
+    confidence: isValid ? 0.9 : 0.6
+  };
+}
+
+PROBLEM AREA #7 - TIME EXTRACTION IN VALIDATOR (lines 518-545):
+---------------------------------------------------------------
+// Try to identify times by context
+let departureTime: ValidationResult = { valid: false };
+let arrivalTime: ValidationResult = { valid: false };
+let boardingTime: ValidationResult = { valid: false };
+
+// Look for labeled times
+const depMatch = upperText.match(/(?:DEPART|DEP|LEAVES?)\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i);
+if (depMatch) {
+  departureTime = validateTime(depMatch[1], 'departure');
+}
+
+const arrMatch = upperText.match(/(?:ARRIV|ARR|LANDS?)\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i);
+if (arrMatch) {
+  arrivalTime = validateTime(arrMatch[1], 'arrival');
+}
+
+const boardMatch = upperText.match(/(?:BOARD|BOARDS?|BOARDING)\s*:?\s*(\d{1,2}:\d{2}\s*[AP]M?)/i);
+if (boardMatch) {
+  boardingTime = validateTime(boardMatch[1], 'boarding');
+}
+
+// HARDCODED FALLBACK: Use position heuristics
+if (!departureTime.valid && times.length > 0) {
+  departureTime = validateTime(times[0], 'departure');
+}
+if (!arrivalTime.valid && times.length > 1) {
+  arrivalTime = validateTime(times[1], 'arrival');
+}
+
+================================================================
+FILE: /src/controllers/flight.controller.ts
+================================================================
+
+PROBLEM AREA #8 - MANUAL ENTRY DEFAULT TIME (lines 127-131):
+------------------------------------------------------------
+// Set default arrival time if not provided (same day, 2 hours later)
+if (!flightData.scheduledArrivalTime) {
+  const departureDate = new Date(flightData.scheduledDepartureTime);
+  flightData.scheduledArrivalTime = new Date(departureDate.getTime() + 2 * 60 * 60 * 1000); // <-- HARDCODED 2 HOURS
+}
+
+================================================================
+FILE: /src/utils/boardingPassSimpletex.ts - convertValidationToFlightData
+================================================================
+
+PROBLEM AREA #9 - VALIDATION CONVERSION (lines 405-421):
+--------------------------------------------------------
+// Handle dates and times
+const flightDate = extractedData.date ? 
+  extractDate(extractedData.date) : 
+  new Date(); // <-- HARDCODED TO TODAY
+
+if (extractedData.departureTime) {
+  result.scheduledDepartureTime = parseDateTime(flightDate || new Date(), extractedData.departureTime);
+} else {
+  result.scheduledDepartureTime = flightDate || new Date(); // <-- HARDCODED TO TODAY
+}
+
+if (extractedData.arrivalTime) {
+  result.scheduledArrivalTime = parseDateTime(flightDate || new Date(), extractedData.arrivalTime);
+} else {
+  // HARDCODED: Estimate arrival as 2 hours after departure
+  result.scheduledArrivalTime = new Date(result.scheduledDepartureTime.getTime() + 2 * 60 * 60 * 1000);
+}
+
+================================================================
+SUMMARY OF ALL HARDCODED TIME BULLSHIT:
+================================================================
+
+1. DEFAULT DATE: Always falls back to new Date() (today) when no date found
+2. ARRIVAL TIME: Always adds 2 hours to departure if not found
+3. TIME CORRECTIONS: 
+   - 80 minutes → 30 minutes
+   - 70 minutes → 10 minutes
+   - hours >= 24 → mod 24
+4. TIME ORDER ASSUMPTION: First time = departure, second time = arrival
+5. NO TIMEZONE HANDLING: Everything assumes local timezone
+6. NO VALIDATION FOR PAST DATES: Will accept flights from 1970
+7. NO VALIDATION FOR FUTURE DATES: Will accept flights from 2050
+
+THIS IS WHY YOUR TIMES ARE FUCKED UP BRO!
+
+================================================================
+WHAT NEEDS TO BE FIXED:
+================================================================
+
+1. Remove hardcoded new Date() fallbacks
+2. Add timezone support
+3. Make arrival time estimation configurable
+4. Add date validation (reasonable range)
+5. Better time extraction logic that doesn't assume order
+6. Support for more time formats
+7. Actually return the extracted times instead of defaulting
+
+BRUH THIS IS A MESS BUT NOW YOU KNOW WHERE ALL THE TIME HANDLING IS!

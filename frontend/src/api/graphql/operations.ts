@@ -1,3 +1,5 @@
+import { strictDateExtraction } from "../utils/dateStrict";
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import { gql } from '@apollo/client';
 
 export const GET_POSTS = gql`

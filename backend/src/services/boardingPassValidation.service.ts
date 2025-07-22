@@ -1,3 +1,4 @@
+import { safeStrictDateExtraction } from "../utils/dateStrict";
 import express, { Request, Response } from 'express';
 import { validateBoardingPass } from '../utils/boardingPassValidator';
 import { parseBoardingPassWithSimpletex } from '../utils/boardingPassSimpletex';

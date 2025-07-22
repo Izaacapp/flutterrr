@@ -1,3 +1,4 @@
+import { strictDateExtraction } from "../utils/dateStrict";
 import crypto from 'crypto';
 import OTP from '../models/OTP';
 import { emailService } from './email.service';
@@ -18,7 +19,7 @@ export class OTPService {
       // Check if user already has an active OTP
       const existingOTP = await OTP.findOne({
         email,
-        expiresAt: { $gt: new Date() },
+        expiresAt: { $gt: strictDateExtraction() },
         verified: false,
       });
 
@@ -87,7 +88,7 @@ export class OTPService {
       }
 
       // Check if OTP has expired
-      if (otpRecord.expiresAt < new Date()) {
+      if (otpRecord.expiresAt < strictDateExtraction()) {
         await OTP.deleteOne({ _id: otpRecord._id });
         return {
           success: false,
