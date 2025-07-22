@@ -7,7 +7,6 @@ import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import '../providers/auth_provider.dart';
 import '../core/theme/app_theme.dart';
-import '../core/config/app_config.dart';
 import '../core/api/api_config.dart';
 import '../widgets/avatar.dart';
 import '../services/post_service.dart';
@@ -1239,15 +1238,23 @@ class _ProfilePageState extends State<ProfilePage> {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final token = await authProvider.getAuthToken();
 
+      // Use dynamic API discovery like other parts of the app
+      final apiUrl = await ApiConfig.discoverEndpoint();
+      final baseUrl = apiUrl.replaceAll('/graphql', '');
+
+      // Get the actual filename and extension
+      final filename = _selectedImage!.path.split('/').last;
+      final extension = filename.split('.').last.toLowerCase();
+      
       final formData = FormData.fromMap({
         'avatar': await MultipartFile.fromFile(
           _selectedImage!.path,
-          filename: 'avatar.jpg',
+          filename: 'avatar.$extension',
         ),
       });
 
       final response = await dio.post(
-        '${AppConfig.apiUrl}/api/users/avatar',
+        '$baseUrl/api/users/avatar',
         data: formData,
         options: Options(
           headers: {
@@ -1271,9 +1278,17 @@ class _ProfilePageState extends State<ProfilePage> {
         }
       }
     } catch (e) {
+      print('Avatar upload error: $e');
+      String errorMessage = 'Failed to upload avatar';
+      
+      if (e is DioException) {
+        print('DioException details: ${e.response?.data}');
+        errorMessage = 'Failed to upload avatar: ${e.response?.statusCode} - ${e.response?.data}';
+      }
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to upload avatar: $e')),
+          SnackBar(content: Text(errorMessage)),
         );
       }
     } finally {
