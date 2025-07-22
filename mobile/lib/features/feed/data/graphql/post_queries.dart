@@ -22,6 +22,14 @@ final String getPostsQuery = r'''
       likes
       comments {
         _id
+        author {
+          _id
+          username
+          fullName
+          avatar
+        }
+        content
+        createdAt
       }
       createdAt
     }

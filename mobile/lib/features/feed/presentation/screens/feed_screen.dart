@@ -24,6 +24,18 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
+  final Map<String, bool> _expandedComments = {};
+  final Map<String, TextEditingController> _commentControllers = {};
+  final Map<String, bool> _isAddingComment = {};
+  
+  @override
+  void dispose() {
+    // Dispose all text controllers
+    for (final controller in _commentControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
   
   void _handleDeletePost(BuildContext context, String postId) {
     showDialog(
@@ -400,7 +412,7 @@ class _FeedScreenState extends State<FeedScreen> {
           border: Border.all(color: Colors.grey[200]!),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 2,
               offset: const Offset(0, 1),
             ),
@@ -536,7 +548,7 @@ class _FeedScreenState extends State<FeedScreen> {
         options: QueryOptions(
           document: gql(getPostsQuery),
           pollInterval: const Duration(seconds: 3), // Auto refresh every 3 seconds
-          fetchPolicy: FetchPolicy.noCache, // Always fetch from network, no caching
+          fetchPolicy: FetchPolicy.networkOnly, // Always fetch from network, no caching
         ),
         builder: (QueryResult result, {VoidCallback? refetch, FetchMore? fetchMore}) {
           // Handle errors
@@ -904,7 +916,13 @@ class _FeedScreenState extends State<FeedScreen> {
                                 painter: CircularCommentPainter(color: AppColors.mediumPurple),
                               ),
                               onPressed: () {
-                                // TODO: Implement comment functionality
+                                setState(() {
+                                  final postId = post['_id'];
+                                  _expandedComments[postId] = !(_expandedComments[postId] ?? false);
+                                  if (_expandedComments[postId]! && !_commentControllers.containsKey(postId)) {
+                                    _commentControllers[postId] = TextEditingController();
+                                  }
+                                });
                               },
                             ),
                             // Share button
@@ -925,18 +943,117 @@ class _FeedScreenState extends State<FeedScreen> {
                           ],
                         ),
                       ),
-                      // Likes count
+                      // Likes and comments count
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: Text(
-                          '${(post['likes'] as List? ?? []).length} likes',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.darkPurple,
-                          ),
+                        child: Row(
+                          children: [
+                            Text(
+                              '${(post['likes'] as List? ?? []).length} likes',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.darkPurple,
+                              ),
+                            ),
+                            if ((post['comments'] as List? ?? []).isNotEmpty) ...[
+                              const SizedBox(width: 16),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    final postId = post['_id'];
+                                    _expandedComments[postId] = !(_expandedComments[postId] ?? false);
+                                    if (_expandedComments[postId]! && !_commentControllers.containsKey(postId)) {
+                                      _commentControllers[postId] = TextEditingController();
+                                    }
+                                  });
+                                },
+                                child: Text(
+                                  '${(post['comments'] as List).length} ${(post['comments'] as List).length == 1 ? 'comment' : 'comments'}',
+                                  style: TextStyle(
+                                    color: Colors.grey[700],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       const SizedBox(height: 8),
+                      
+                      // Comments section
+                      if (_expandedComments[post['_id']] ?? false) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Comment input
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _commentControllers[post['_id']],
+                                      decoration: InputDecoration(
+                                        hintText: 'Add a comment...',
+                                        hintStyle: TextStyle(color: Colors.grey[500]),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: BorderSide(color: Colors.grey[300]!),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: BorderSide(color: Colors.grey[300]!),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(20),
+                                          borderSide: BorderSide(color: AppColors.mediumPurple, width: 2),
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      ),
+                                      maxLines: null,
+                                      textInputAction: TextInputAction.send,
+                                      onSubmitted: (value) => _addComment(post['_id'], refetch),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    onPressed: (_isAddingComment[post['_id']] ?? false) 
+                                        ? null 
+                                        : () => _addComment(post['_id'], refetch),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.mediumPurple,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    ),
+                                    child: (_isAddingComment[post['_id']] ?? false)
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : const Text('Post'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              
+                              // Comments list
+                              if (post['comments'] != null && (post['comments'] as List).isNotEmpty) ...[
+                                ...(post['comments'] as List).map((comment) => 
+                                  _buildComment(comment, post, refetch)
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ],
                   ),
                 );
@@ -968,6 +1085,173 @@ class _FeedScreenState extends State<FeedScreen> {
     } catch (e) {
       return 'Unknown';
     }
+  }
+  
+  Future<void> _addComment(String postId, VoidCallback? refetch) async {
+    final controller = _commentControllers[postId];
+    if (controller == null || controller.text.trim().isEmpty) return;
+    
+    setState(() {
+      _isAddingComment[postId] = true;
+    });
+    
+    try {
+      await PostService.addComment(postId, controller.text.trim());
+      controller.clear();
+      if (refetch != null) {
+        refetch();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Comment added'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to add comment'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAddingComment[postId] = false;
+        });
+      }
+    }
+  }
+  
+  Future<void> _deleteComment(String postId, String commentId, VoidCallback? refetch) async {
+    try {
+      await PostService.deleteComment(postId, commentId);
+      if (refetch != null) {
+        refetch();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Comment deleted'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to delete comment'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  Widget _buildComment(Map<String, dynamic> comment, Map<String, dynamic> post, VoidCallback? refetch) {
+    // Handle null author data
+    final author = comment['author'] as Map<String, dynamic>?;
+    final username = author?['username'] ?? 'anonymous';
+    final fullName = author?['fullName'];
+    final avatar = author?['avatar'];
+    
+    return FutureBuilder<String?>(
+      future: SharedPreferences.getInstance().then((prefs) {
+        final userJson = prefs.getString('passport_buddy_user');
+        if (userJson != null) {
+          final userData = jsonDecode(userJson);
+          return userData['id'];
+        }
+        return null;
+      }),
+      builder: (context, snapshot) {
+        final currentUserId = snapshot.data;
+        final commentAuthorId = author?['_id'];
+        final postAuthorId = post['author']?['_id'];
+        final canDelete = currentUserId != null && 
+            (currentUserId == commentAuthorId || currentUserId == postAuthorId);
+        
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Comment author avatar
+              Avatar(
+                imageUrl: avatar,
+                name: fullName ?? username,
+                size: 32,
+              ),
+              const SizedBox(width: 8),
+              // Comment content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          username,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatDate(comment['createdAt']),
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      comment['content'] ?? '',
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              // Delete button
+              if (canDelete)
+                IconButton(
+                  icon: Icon(Icons.more_horiz, color: Colors.grey[600], size: 20),
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (BuildContext context) {
+                        return SafeArea(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                leading: const Icon(Icons.delete, color: Colors.red),
+                                title: const Text('Delete comment'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  _deleteComment(post['_id'], comment['_id'], refetch);
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
   }
   
 }
