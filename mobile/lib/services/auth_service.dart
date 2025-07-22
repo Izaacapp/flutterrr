@@ -20,6 +20,7 @@ class User {
   final int? citiesVisited;
   final List<String>? countriesVisited;
   final bool? emailVerified;
+  final String? createdAt;
 
   User({
     required this.id,
@@ -37,6 +38,7 @@ class User {
     this.citiesVisited,
     this.countriesVisited,
     this.emailVerified,
+    this.createdAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -58,6 +60,7 @@ class User {
           ? List<String>.from(json['countriesVisited'])
           : null,
       emailVerified: json['emailVerified'],
+      createdAt: json['createdAt'],
     );
   }
 }
@@ -232,6 +235,7 @@ class AuthService {
           'citiesVisited': _user!.citiesVisited,
           'countriesVisited': _user!.countriesVisited,
           'emailVerified': _user!.emailVerified,
+          'createdAt': _user!.createdAt,
         }));
       }
 
@@ -440,6 +444,7 @@ class AuthService {
           'citiesVisited': _user!.citiesVisited,
           'countriesVisited': _user!.countriesVisited,
           'emailVerified': _user!.emailVerified,
+          'createdAt': _user!.createdAt,
         }));
       } else {
         await logout();
@@ -479,14 +484,14 @@ class AuthService {
     try {
       final baseUrl = await apiUrl;
       final response = await _dio.get(
-        '$baseUrl/api/auth/me',
+        '$baseUrl/api/users/profile',
         options: Options(
           headers: {'Authorization': 'Bearer $_token'},
         ),
       );
       
-      if (response.data != null && response.data['user'] != null) {
-        _user = User.fromJson(response.data['user']);
+      if (response.data != null && response.data['data'] != null && response.data['data']['user'] != null) {
+        _user = User.fromJson(response.data['data']['user']);
         await _prefs.setString(_userKey, jsonEncode({
           'id': _user!.id,
           'username': _user!.username,
@@ -503,6 +508,7 @@ class AuthService {
           'citiesVisited': _user!.citiesVisited,
           'countriesVisited': _user!.countriesVisited,
           'emailVerified': _user!.emailVerified,
+          'createdAt': _user!.createdAt,
         }));
       }
     } catch (e) {
@@ -530,6 +536,7 @@ class AuthService {
       'citiesVisited': user.citiesVisited,
       'countriesVisited': user.countriesVisited,
       'emailVerified': user.emailVerified,
+      'createdAt': user.createdAt,
     }));
   }
 

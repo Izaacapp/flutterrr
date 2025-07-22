@@ -62,7 +62,7 @@ if (import.meta.env.DEV) {
 
       // Simple query to get posts from cache
       const GET_POSTS = gql`
-        query GetPosts {
+        query GetPostsForTest {
           posts {
             _id
           }

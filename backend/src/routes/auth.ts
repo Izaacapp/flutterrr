@@ -465,7 +465,8 @@ router.get('/verify', authenticate, catchAsync(async (req: AuthRequest, res: Res
       passportCountry: user.passportCountry,
       milesFlown: user.milesFlown,
       countriesVisited: user.countriesVisited,
-      emailVerified: user.emailVerified
+      emailVerified: user.emailVerified,
+      createdAt: user.createdAt
     }
   });
 }));

@@ -107,6 +107,51 @@ export default {
         console.error('Error fetching current user:', err);
         throw err;
       }
+    },
+    userPosts: async (_: any, { userId }: { userId: string }) => {
+      try {
+        if (!userId) {
+          throw new Error('User ID is required');
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+          throw new Error('Invalid user ID');
+        }
+
+        const posts = await Post.find({ author: userId })
+          .populate('author', 'username fullName avatar')
+          .populate('comments.author', 'username fullName avatar')
+          .sort({ createdAt: -1 })
+          .lean();
+
+        return posts.map((post: any) => ({
+          _id: post._id.toString(),
+          author: post.author ? {
+            _id: post.author._id.toString(),
+            username: post.author.username,
+            fullName: post.author.fullName,
+            avatar: post.author.avatar
+          } : null,
+          content: post.content,
+          images: post.images || [],
+          likes: Array.isArray(post.likes) ? post.likes.map((id: any) => id?.toString() || '') : [],
+          comments: (post.comments || []).map((comment: any) => ({
+            _id: comment._id?.toString() || '',
+            author: comment.author ? {
+              _id: comment.author._id?.toString() || '',
+              username: comment.author.username || '',
+              fullName: comment.author.fullName || '',
+              avatar: comment.author.avatar || null
+            } : null,
+            content: comment.content,
+            createdAt: comment.createdAt ? comment.createdAt.toISOString() : strictDateExtraction().toISOString()
+          })),
+          createdAt: post.createdAt.toISOString()
+        }));
+      } catch (err) {
+        console.error('Error fetching user posts:', err);
+        throw err;
+      }
     }
   },
   RootMutation: {

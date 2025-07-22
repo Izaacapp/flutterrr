@@ -93,3 +93,37 @@ export const GET_ME = gql`
     }
   }
 `;
+
+export const GET_USER_POSTS = gql`
+  query GetUserPosts($userId: ID!) {
+    userPosts(userId: $userId) {
+      _id
+      content
+      author {
+        _id
+        username
+        fullName
+        avatar
+      }
+      images {
+        url
+        key
+        size
+        mimetype
+      }
+      likes
+      comments {
+        _id
+        author {
+          _id
+          username
+          fullName
+          avatar
+        }
+        content
+        createdAt
+      }
+      createdAt
+    }
+  }
+`;

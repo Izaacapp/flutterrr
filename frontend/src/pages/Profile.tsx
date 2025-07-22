@@ -5,6 +5,7 @@ import { useFileUpload } from '../hooks/useFileUpload';
 import { useToast } from '../contexts/ToastContext';
 import { userService } from '../services/user.service';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { UserPostsFeed } from '../components/profile/UserPostsFeed';
 
 export const Profile: React.FC = () => {
   const { username } = useParams();
@@ -25,7 +26,7 @@ export const Profile: React.FC = () => {
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   
   const isOwnProfile = !username || username === currentUser?.username;
-  const user = isOwnProfile ? (profileUser || currentUser) : profileUser;
+  const user = isOwnProfile ? (currentUser || profileUser) : profileUser; // Prefer currentUser for own profile
   const { 
     selectedImage, 
     previewUrl, 
@@ -78,7 +79,7 @@ export const Profile: React.FC = () => {
     };
 
     fetchUserProfile();
-  }, [username, isOwnProfile, navigate, showToast]);
+  }, [username, isOwnProfile, navigate, showToast, currentUser]); // Added currentUser as dependency
 
   // Close options menu when clicking outside
   useEffect(() => {
@@ -603,112 +604,175 @@ export const Profile: React.FC = () => {
           Travel Statistics
         </h2>
         
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '1.5rem'
-        }}>
+        <div>
+          {/* Top row - 4 items */}
           <div style={{ 
-            padding: '1.25rem', 
-            backgroundColor: 'var(--pb-ultra-light)', 
-            borderRadius: '8px',
-            border: '1px solid var(--pb-light-periwinkle)',
-            textAlign: 'center'
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: '1.5rem',
+            marginBottom: '1.5rem'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 5 21 5s-1 0-2.5 1.5L15 10l-8.2-1.8c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-5 2c-.6.3-.6 1.2 0 1.5L8 17l4-2 1.2 3.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1"/>
-              </svg>
+            <div style={{ 
+              padding: '1.25rem', 
+              backgroundColor: 'var(--pb-ultra-light)', 
+              borderRadius: '8px',
+              border: '1px solid var(--pb-light-periwinkle)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 5 21 5s-1 0-2.5 1.5L15 10l-8.2-1.8c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-5 2c-.6.3-.6 1.2 0 1.5L8 17l4-2 1.2 3.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1"/>
+                </svg>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+                {user?.totalFlights?.toLocaleString() || '0'}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Total Flights</div>
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
-              {user?.totalFlights?.toLocaleString() || '0'}
+            
+            <div style={{ 
+              padding: '1.25rem', 
+              backgroundColor: 'var(--pb-ultra-light)', 
+              borderRadius: '8px',
+              border: '1px solid var(--pb-light-periwinkle)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+                {user?.citiesVisited?.toLocaleString() || '0'}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Cities Visited</div>
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Total Flights</div>
+            
+            <div style={{ 
+              padding: '1.25rem', 
+              backgroundColor: 'var(--pb-ultra-light)', 
+              borderRadius: '8px',
+              border: '1px solid var(--pb-light-periwinkle)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
+                  <path d="M2 12h20"/>
+                </svg>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+                {user?.countriesVisited?.length || 0}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Countries Visited</div>
+            </div>
+            
+            <div style={{ 
+              padding: '1.25rem', 
+              backgroundColor: 'var(--pb-ultra-light)', 
+              borderRadius: '8px',
+              border: '1px solid var(--pb-light-periwinkle)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12,6 12,12 16,14"/>
+                </svg>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+                {user?.flightHours || '0'}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Flight Hours</div>
+            </div>
           </div>
-          
+
+          {/* Bottom row - 3 items */}
           <div style={{ 
-            padding: '1.25rem', 
-            backgroundColor: 'var(--pb-ultra-light)', 
-            borderRadius: '8px',
-            border: '1px solid var(--pb-light-periwinkle)',
-            textAlign: 'center'
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '1.5rem'
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                <circle cx="12" cy="10" r="3"/>
-              </svg>
+            <div style={{ 
+              padding: '1.25rem', 
+              backgroundColor: 'var(--pb-ultra-light)', 
+              borderRadius: '8px',
+              border: '1px solid var(--pb-light-periwinkle)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 12h20"/>
+                  <path d="M6 8v8"/>
+                  <path d="M10 8v8"/>
+                  <path d="M14 8v8"/>
+                  <path d="M18 8v8"/>
+                </svg>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+                {user?.milesFlown?.toLocaleString() || '0'}
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Miles Flown</div>
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
-              {user?.citiesVisited?.toLocaleString() || '0'}
+            
+            <div style={{ 
+              padding: '1.25rem', 
+              backgroundColor: 'var(--pb-ultra-light)', 
+              borderRadius: '8px',
+              border: '1px solid var(--pb-light-periwinkle)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" fill="#4A90E2"/>
+                  <path d="M2 12h20" stroke="#2E7D32" strokeWidth="0.5"/>
+                  <path d="M12 2c-2.5 0-4.5 4.5-4.5 10s2 10 4.5 10" stroke="#2E7D32" strokeWidth="0.5"/>
+                  <path d="M12 2c2.5 0 4.5 4.5 4.5 10s-2 10-4.5 10" stroke="#2E7D32" strokeWidth="0.5"/>
+                  <path d="M3.5 8h17" stroke="#2E7D32" strokeWidth="0.5"/>
+                  <path d="M3.5 16h17" stroke="#2E7D32" strokeWidth="0.5"/>
+                  <path d="M5 5c2 1 5 1.5 7 1.5s5-0.5 7-1.5" fill="#2E7D32" opacity="0.3"/>
+                  <path d="M5 19c2-1 5-1.5 7-1.5s5 0.5 7 1.5" fill="#2E7D32" opacity="0.3"/>
+                  <path d="M16 10c0 2-1 4-2 4s-2-2-2-4 1-4 2-4 2 2 2 4z" fill="#8B4513" opacity="0.4"/>
+                  <path d="M8 14c0 1.5-0.5 3-1 3s-1-1.5-1-3 0.5-3 1-3 1 1.5 1 3z" fill="#2E7D32" opacity="0.4"/>
+                </svg>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+                {((user?.milesFlown || 0) / 24901).toFixed(1)}x
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Times Around Earth</div>
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Cities Visited</div>
-          </div>
-          
-          <div style={{ 
-            padding: '1.25rem', 
-            backgroundColor: 'var(--pb-ultra-light)', 
-            borderRadius: '8px',
-            border: '1px solid var(--pb-light-periwinkle)',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 12h20"/>
-                <path d="M6 8v8"/>
-                <path d="M10 8v8"/>
-                <path d="M14 8v8"/>
-                <path d="M18 8v8"/>
-              </svg>
+            
+            <div style={{ 
+              padding: '1.25rem', 
+              backgroundColor: 'var(--pb-ultra-light)', 
+              borderRadius: '8px',
+              border: '1px solid var(--pb-light-periwinkle)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" fill="#E8E8E8"/>
+                  <circle cx="8" cy="8" r="2" fill="#C0C0C0" opacity="0.6"/>
+                  <circle cx="15" cy="10" r="1.5" fill="#C0C0C0" opacity="0.5"/>
+                  <circle cx="10" cy="15" r="1" fill="#C0C0C0" opacity="0.4"/>
+                  <circle cx="16" cy="16" r="1.8" fill="#C0C0C0" opacity="0.5"/>
+                  <circle cx="6" cy="13" r="0.8" fill="#C0C0C0" opacity="0.3"/>
+                  <circle cx="13" cy="6" r="0.6" fill="#C0C0C0" opacity="0.3"/>
+                  <path d="M2 12C2 6.477 6.477 2 12 2c1.5 0 3 .3 4.3.9C15 3.5 14 5 14 7c0 3-2 5-4 5-1.5 0-3-1-3.5-2.5C5.5 11 5 13 5 15c0 1.5.5 3 1.5 4.2C4.2 17.5 2 15 2 12z" fill="#C0C0C0" opacity="0.2"/>
+                </svg>
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+                {((user?.milesFlown || 0) / 238855).toFixed(2)}x
+              </div>
+              <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>To the Moon</div>
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
-              {user?.milesFlown?.toLocaleString() || '0'}
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Miles Flown</div>
-          </div>
-          
-          <div style={{ 
-            padding: '1.25rem', 
-            backgroundColor: 'var(--pb-ultra-light)', 
-            borderRadius: '8px',
-            border: '1px solid var(--pb-light-periwinkle)',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
-                <path d="M2 12h20"/>
-              </svg>
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
-              {user?.countriesVisited?.length || 0}
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Countries Visited</div>
-          </div>
-          
-          <div style={{ 
-            padding: '1.25rem', 
-            backgroundColor: 'var(--pb-ultra-light)', 
-            borderRadius: '8px',
-            border: '1px solid var(--pb-light-periwinkle)',
-            textAlign: 'center'
-          }}>
-            <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12,6 12,12 16,14"/>
-              </svg>
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
-              {user?.flightHours || '0'}
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Flight Hours</div>
           </div>
         </div>
       </div>
 
-      {/* Travel Goals */}
+      {/* User Posts Feed */}
       <div style={{ 
         backgroundColor: 'var(--pb-white)',
         borderRadius: '12px',
@@ -723,76 +787,12 @@ export const Profile: React.FC = () => {
           color: 'var(--pb-dark-purple)',
           textAlign: 'center'
         }}>
-          2024 Travel Goals
+          Posts
         </h2>
         
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '1rem'
-        }}>
-          <div style={{ 
-            padding: '1.25rem', 
-            backgroundColor: 'var(--pb-ultra-light)', 
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <circle cx="12" cy="12" r="6"/>
-                <circle cx="12" cy="12" r="2"/>
-              </svg>
-            </div>
-            <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.5rem' }}>
-              Visit 5 New Countries
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#059669' }}>3/5 Complete</div>
-          </div>
-          
-          <div style={{ 
-            padding: '1.25rem', 
-            backgroundColor: 'var(--pb-ultra-light)', 
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 22h20"/>
-                <path d="M6.36 17.78L4 21l10-3 10 3-2.36-3.22"/>
-                <path d="M18 6L8.5 15.5"/>
-                <path d="M9 6L20 17"/>
-                <path d="M15 2L9 8"/>
-                <path d="M20 6L14 12"/>
-              </svg>
-            </div>
-            <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.5rem' }}>
-              50,000 Miles
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#059669' }}>
-              {((user?.milesFlown || 0) / 50000 * 100).toFixed(0)}% Complete
-            </div>
-          </div>
-          
-          <div style={{ 
-            padding: '1.25rem', 
-            backgroundColor: 'var(--pb-ultra-light)', 
-            borderRadius: '8px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M6 3h12l4 6-10 13L2 9l4-6z"/>
-                <path d="M11 3L8 9l4 13 4-13-3-6"/>
-                <path d="M2 9h20"/>
-              </svg>
-            </div>
-            <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.5rem' }}>
-              Elite Status
-            </div>
-            <div style={{ fontSize: '0.875rem', color: '#d97706' }}>In Progress</div>
-          </div>
-        </div>
+        {user?._id && (
+          <UserPostsFeed userId={user._id} />
+        )}
       </div>
 
       {/* Profile Information */}
@@ -837,7 +837,7 @@ export const Profile: React.FC = () => {
             justifyContent: 'space-between'
           }}>
             <strong>Member since:</strong> 
-            <span>January 2024</span>
+            <span>{user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Unknown'}</span>
           </div>
         </div>
       </div>

@@ -111,4 +111,9 @@ class AuthProvider extends ChangeNotifier {
   Future<void> refresh() async {
     await _init();
   }
+
+  Future<void> refreshUserProfile() async {
+    await _authService.refreshUserProfile();
+    notifyListeners();
+  }
 }

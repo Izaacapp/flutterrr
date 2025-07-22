@@ -58,6 +58,7 @@ export default buildSchema(`
         posts: [Post!]!
         user(userId: ID): User
         me: User
+        userPosts(userId: ID!): [Post!]!
     }
 
     type RootMutation {

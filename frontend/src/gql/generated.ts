@@ -1,5 +1,3 @@
-import { strictDateExtraction } from "../utils/dateStrict";
-import { safeStrictDateExtraction } from "../utils/dateStrict";
 import { gql } from '@apollo/client';
 import * as Apollo from '@apollo/client';
 export type Maybe<T> = T | null;
@@ -71,11 +69,17 @@ export type RootQuery = {
   me?: Maybe<User>;
   posts: Array<Post>;
   user?: Maybe<User>;
+  userPosts: Array<Post>;
 };
 
 
 export type RootQueryUserArgs = {
   userId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+
+export type RootQueryUserPostsArgs = {
+  userId: Scalars['ID']['input'];
 };
 
 export type UpdateProfileInput = {
@@ -125,6 +129,18 @@ export type GetMeQueryVariables = Exact<{ [key: string]: never; }>;
 
 
 export type GetMeQuery = { __typename?: 'RootQuery', me?: { __typename?: 'User', _id: string, username: string, fullName: string, avatar?: string | null, bio?: string | null, location?: string | null, homeAirport?: string | null, passportCountry?: string | null, milesFlown?: number | null, countriesVisited: Array<string>, emailVerified: boolean } | null };
+
+export type GetUserPostsQueryVariables = Exact<{
+  userId: Scalars['ID']['input'];
+}>;
+
+
+export type GetUserPostsQuery = { __typename?: 'RootQuery', userPosts: Array<{ __typename?: 'Post', _id: string, content: string, likes: Array<string>, createdAt: string, author?: { __typename?: 'User', _id: string, username: string, fullName: string, avatar?: string | null } | null, images: Array<{ __typename?: 'Image', url: string, key: string, size: number, mimetype: string }>, comments: Array<{ __typename?: 'Comment', _id: string, content: string, createdAt: string, author?: { __typename?: 'User', _id: string, username: string, fullName: string, avatar?: string | null } | null }> }> };
+
+export type GetPostsForTestQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetPostsForTestQuery = { __typename?: 'RootQuery', posts: Array<{ __typename?: 'Post', _id: string }> };
 
 
 export const GetPostsDocument = gql`
@@ -331,3 +347,108 @@ export type GetMeQueryHookResult = ReturnType<typeof useGetMeQuery>;
 export type GetMeLazyQueryHookResult = ReturnType<typeof useGetMeLazyQuery>;
 export type GetMeSuspenseQueryHookResult = ReturnType<typeof useGetMeSuspenseQuery>;
 export type GetMeQueryResult = Apollo.QueryResult<GetMeQuery, GetMeQueryVariables>;
+export const GetUserPostsDocument = gql`
+    query GetUserPosts($userId: ID!) {
+  userPosts(userId: $userId) {
+    _id
+    content
+    author {
+      _id
+      username
+      fullName
+      avatar
+    }
+    images {
+      url
+      key
+      size
+      mimetype
+    }
+    likes
+    comments {
+      _id
+      author {
+        _id
+        username
+        fullName
+        avatar
+      }
+      content
+      createdAt
+    }
+    createdAt
+  }
+}
+    `;
+
+/**
+ * __useGetUserPostsQuery__
+ *
+ * To run a query within a React component, call `useGetUserPostsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetUserPostsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetUserPostsQuery({
+ *   variables: {
+ *      userId: // value for 'userId'
+ *   },
+ * });
+ */
+export function useGetUserPostsQuery(baseOptions: Apollo.QueryHookOptions<GetUserPostsQuery, GetUserPostsQueryVariables> & ({ variables: GetUserPostsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetUserPostsQuery, GetUserPostsQueryVariables>(GetUserPostsDocument, options);
+      }
+export function useGetUserPostsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetUserPostsQuery, GetUserPostsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetUserPostsQuery, GetUserPostsQueryVariables>(GetUserPostsDocument, options);
+        }
+export function useGetUserPostsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetUserPostsQuery, GetUserPostsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetUserPostsQuery, GetUserPostsQueryVariables>(GetUserPostsDocument, options);
+        }
+export type GetUserPostsQueryHookResult = ReturnType<typeof useGetUserPostsQuery>;
+export type GetUserPostsLazyQueryHookResult = ReturnType<typeof useGetUserPostsLazyQuery>;
+export type GetUserPostsSuspenseQueryHookResult = ReturnType<typeof useGetUserPostsSuspenseQuery>;
+export type GetUserPostsQueryResult = Apollo.QueryResult<GetUserPostsQuery, GetUserPostsQueryVariables>;
+export const GetPostsForTestDocument = gql`
+    query GetPostsForTest {
+  posts {
+    _id
+  }
+}
+    `;
+
+/**
+ * __useGetPostsForTestQuery__
+ *
+ * To run a query within a React component, call `useGetPostsForTestQuery` and pass it any options that fit your needs.
+ * When your component renders, `useGetPostsForTestQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useGetPostsForTestQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useGetPostsForTestQuery(baseOptions?: Apollo.QueryHookOptions<GetPostsForTestQuery, GetPostsForTestQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<GetPostsForTestQuery, GetPostsForTestQueryVariables>(GetPostsForTestDocument, options);
+      }
+export function useGetPostsForTestLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<GetPostsForTestQuery, GetPostsForTestQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<GetPostsForTestQuery, GetPostsForTestQueryVariables>(GetPostsForTestDocument, options);
+        }
+export function useGetPostsForTestSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<GetPostsForTestQuery, GetPostsForTestQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<GetPostsForTestQuery, GetPostsForTestQueryVariables>(GetPostsForTestDocument, options);
+        }
+export type GetPostsForTestQueryHookResult = ReturnType<typeof useGetPostsForTestQuery>;
+export type GetPostsForTestLazyQueryHookResult = ReturnType<typeof useGetPostsForTestLazyQuery>;
+export type GetPostsForTestSuspenseQueryHookResult = ReturnType<typeof useGetPostsForTestSuspenseQuery>;
+export type GetPostsForTestQueryResult = Apollo.QueryResult<GetPostsForTestQuery, GetPostsForTestQueryVariables>;

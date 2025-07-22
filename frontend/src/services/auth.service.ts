@@ -18,6 +18,7 @@ export interface User {
   citiesVisited?: number;
   countriesVisited?: string[];
   emailVerified?: boolean;
+  createdAt?: string;
 }
 
 export interface AuthResponse {
