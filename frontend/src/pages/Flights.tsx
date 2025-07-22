@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { flightService, Flight, FlightStats } from '../services/flight.service';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
 import { FlightEditModal } from '../components/flights/FlightEditModal';
 import { FlightManualEntry } from '../components/flights/FlightManualEntry';
 import { CameraIcon, UploadIcon, PlusIcon, EditIcon, TrashIcon } from '../components/ui/Icons';
@@ -8,6 +9,7 @@ import '../assets/styles/Flights.css';
 
 export const Flights: React.FC = () => {
   const { showToast } = useToast();
+  const { refreshUserProfile } = useAuth();
   const [flights, setFlights] = useState<Flight[]>([]);
   const [stats, setStats] = useState<FlightStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +42,12 @@ export const Flights: React.FC = () => {
       const currentYear = new Date().getFullYear();
       const statsData = await flightService.getFlightStats(currentYear);
       setStats(statsData);
+      
+      // Sync user miles to ensure consistency
+      await flightService.syncUserMiles();
+      
+      // Refresh user profile to update sidebar and profile page data
+      await refreshUserProfile();
     } catch (error) {
       console.error('Error loading stats:', error);
     }
@@ -104,13 +112,6 @@ export const Flights: React.FC = () => {
     });
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit'
-    });
-  };
 
   const upcomingFlights = flights.filter(f => f.status === 'upcoming');
   const completedFlights = flights.filter(f => f.status === 'completed');
@@ -171,8 +172,8 @@ export const Flights: React.FC = () => {
             <div className="stat-label">Miles Traveled</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value">{stats.summary.totalPoints.toLocaleString()}</div>
-            <div className="stat-label">Points Earned</div>
+            <div className="stat-value">{stats.summary.totalHours.toLocaleString()}</div>
+            <div className="stat-label">Flight Hours</div>
           </div>
           <div className="stat-card">
             <div className="stat-value">{stats.summary.uniqueDestinations}</div>
@@ -269,13 +270,6 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight, onEdit, onDelete }) => 
     });
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit'
-    });
-  };
 
   return (
     <div className="flight-card">
@@ -293,7 +287,6 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight, onEdit, onDelete }) => 
         <div className="airport">
           <div className="airport-code">{flight.origin.airportCode}</div>
           <div className="airport-city">{flight.origin.city}</div>
-          <div className="flight-time">{formatTime(flight.scheduledDepartureTime)}</div>
         </div>
         
         <div className="flight-path">
@@ -306,23 +299,18 @@ const FlightCard: React.FC<FlightCardProps> = ({ flight, onEdit, onDelete }) => 
         <div className="airport">
           <div className="airport-code">{flight.destination.airportCode}</div>
           <div className="airport-city">{flight.destination.city}</div>
-          <div className="flight-time">{formatTime(flight.scheduledArrivalTime)}</div>
         </div>
       </div>
       
       <div className="flight-details">
         <div className="detail">
-          <span className="label">Gate:</span>
-          <span className="value">{flight.origin.gate || 'TBD'}</span>
-        </div>
-        <div className="detail">
           <span className="label">Seat:</span>
           <span className="value">{flight.seatNumber || 'N/A'}</span>
         </div>
-        {flight.points && (
+        {flight.flightHours && (
           <div className="detail">
-            <span className="label">Points:</span>
-            <span className="value">{flight.points.toLocaleString()}</span>
+            <span className="label">Hours:</span>
+            <span className="value">{flight.flightHours}</span>
           </div>
         )}
       </div>

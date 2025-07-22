@@ -17,7 +17,6 @@ export interface IFlight extends Document {
     city: string;
     country: string;
     terminal?: string;
-    gate?: string;
   };
   destination: {
     airportCode: string;
@@ -25,7 +24,6 @@ export interface IFlight extends Document {
     city: string;
     country: string;
     terminal?: string;
-    gate?: string;
   };
   
   // Time info
@@ -41,7 +39,7 @@ export interface IFlight extends Document {
   // Flight stats
   distance?: number; // in miles
   duration?: number; // in minutes
-  points?: number; // calculated points
+  flightHours?: number; // calculated flight hours
   
   // Boarding pass
   boardingPassUrl?: string; // stored in S3
@@ -57,7 +55,7 @@ export interface IFlight extends Document {
   updatedAt: Date;
   
   // Methods
-  calculatePoints(): number;
+  calculateFlightHours(): number;
 }
 
 const flightSchema = new Schema<IFlight>({
@@ -102,7 +100,6 @@ const flightSchema = new Schema<IFlight>({
       required: true
     },
     terminal: String,
-    gate: String
   },
   
   destination: {
@@ -123,7 +120,6 @@ const flightSchema = new Schema<IFlight>({
       required: true
     },
     terminal: String,
-    gate: String
   },
   
   scheduledDepartureTime: {
@@ -142,7 +138,7 @@ const flightSchema = new Schema<IFlight>({
   
   distance: Number,
   duration: Number,
-  points: Number,
+  flightHours: Number,
   
   boardingPassUrl: String,
   barcode: {
@@ -175,13 +171,23 @@ flightSchema.virtual('durationInHours').get(function() {
   return null;
 });
 
-// Method to calculate points based on distance and class
-flightSchema.methods.calculatePoints = function() {
+// Method to calculate flight hours based on distance and average speed
+flightSchema.methods.calculateFlightHours = function() {
   if (!this.distance) return 0;
   
-  // Base points equal to miles traveled
-  // Could add multipliers based on airline status or other factors in the future
-  return Math.round(this.distance);
+  // Average effective speed accounting for:
+  // - Taxi time (15-30 min each way)
+  // - Climb/descent time (~30 min total)
+  // - Routing inefficiencies
+  // - Weather delays
+  // This results in ~430 mph average for the total trip time
+  const averageEffectiveSpeed = 430; // miles per hour
+  
+  // Calculate flight time in hours
+  const hours = this.distance / averageEffectiveSpeed;
+  
+  // Round to 1 decimal place
+  return Math.round(hours * 10) / 10;
 };
 
 const Flight = model<IFlight>('Flight', flightSchema);

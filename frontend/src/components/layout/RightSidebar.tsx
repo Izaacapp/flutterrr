@@ -84,7 +84,39 @@ const RightSidebar: React.FC<RightSidebarProps> = () => {
         }}>
           Your Travel Stats
         </h4>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              fontSize: '1.25rem', 
+              fontWeight: 'bold', 
+              color: 'var(--pb-dark-purple)' 
+            }}>
+              {user?.totalFlights || 0}
+            </div>
+            <div style={{ 
+              fontSize: '0.75rem', 
+              color: 'var(--pb-medium-purple)' 
+            }}>
+              Flights
+            </div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              fontSize: '1.25rem', 
+              fontWeight: 'bold', 
+              color: 'var(--pb-dark-purple)' 
+            }}>
+              {user?.citiesVisited || 0}
+            </div>
+            <div style={{ 
+              fontSize: '0.75rem', 
+              color: 'var(--pb-medium-purple)' 
+            }}>
+              Cities
+            </div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ 
               fontSize: '1.25rem', 
@@ -98,21 +130,6 @@ const RightSidebar: React.FC<RightSidebarProps> = () => {
               color: 'var(--pb-medium-purple)' 
             }}>
               Countries
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '1.25rem', 
-              fontWeight: 'bold', 
-              color: 'var(--pb-dark-purple)' 
-            }}>
-              12
-            </div>
-            <div style={{ 
-              fontSize: '0.75rem', 
-              color: 'var(--pb-medium-purple)' 
-            }}>
-              Flights
             </div>
           </div>
           <div style={{ textAlign: 'center' }}>

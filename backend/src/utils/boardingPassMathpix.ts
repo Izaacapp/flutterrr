@@ -219,21 +219,18 @@ function buildBoardingPass(data: ParsedLineData, confidence: number): BoardingPa
       airportCode: data.departure.airport,
       city: data.departure.city,
       scheduledTime: parseDateTime(data.departure.date, data.departure.time),
-      gate: data.departure.gate,
       terminal: data.departure.terminal
     },
     arrival: {
       airportCode: data.arrival.airport,
       city: data.arrival.city,
       scheduledTime: parseDateTime(data.arrival.date || data.departure.date, data.arrival.time),
-      gate: data.arrival.gate,
       terminal: data.arrival.terminal
     }
   };
   
   const boardingInfo: BoardingInfo = {
     seatNumber: data.seat || 'UNKNOWN',
-    gate: data.departure?.gate || 'UNKNOWN',
     boardingGroup: data.boardingGroup,
     boardingTime: data.boardingTime
   };

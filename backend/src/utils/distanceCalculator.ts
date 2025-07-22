@@ -1,6 +1,30 @@
 import { safeStrictDateExtraction } from "./dateStrict";
-// Cache for airport data to avoid repeated API calls
-const airportCache: Map<string, { lat: number; lng: number; city?: string; state?: string }> = new Map();
+import * as fs from 'fs';
+import * as path from 'path';
+
+// Cache for airport data to avoid repeated file reads
+const airportCache: Map<string, { lat: number; lng: number; city?: string; state?: string; country?: string }> = new Map();
+
+// Load airports data from JSON file
+let airportsData: Array<{
+  code: string;
+  name: string;
+  city: string;
+  lat: number;
+  lng: number;
+  state?: string;
+  country?: string;
+}> = [];
+
+// Load airports data on module initialization
+try {
+  const airportsPath = path.join(__dirname, '../data/airports.json');
+  const airportsJson = fs.readFileSync(airportsPath, 'utf8');
+  airportsData = JSON.parse(airportsJson);
+  console.log(`Loaded ${airportsData.length} airports from airports.json`);
+} catch (error) {
+  console.warn('Failed to load airports.json, using fallback data:', error);
+}
 
 // Pre-populate with some common airports for offline fallback
 const fallbackAirports: Record<string, { lat: number; lng: number }> = {
@@ -14,6 +38,18 @@ const fallbackAirports: Record<string, { lat: number; lng: number }> = {
   'SEA': { lat: 47.4502, lng: -122.3088 },
   'BOS': { lat: 42.3656, lng: -71.0096 },
   'LAS': { lat: 36.0840, lng: -115.1537 },
+  'MCO': { lat: 28.4294, lng: -81.3089 },
+  // International airports
+  'HND': { lat: 35.5494, lng: 139.7798 }, // Tokyo Haneda
+  'NRT': { lat: 35.7720, lng: 140.3928 }, // Tokyo Narita
+  'LHR': { lat: 51.4700, lng: -0.4543 }, // London Heathrow
+  'CDG': { lat: 49.0097, lng: 2.5479 }, // Paris Charles de Gaulle
+  'FRA': { lat: 50.0264, lng: 8.5431 }, // Frankfurt
+  'AMS': { lat: 52.3105, lng: 4.7683 }, // Amsterdam
+  'ICN': { lat: 37.4602, lng: 126.4407 }, // Seoul Incheon
+  'SIN': { lat: 1.3644, lng: 103.9915 }, // Singapore
+  'HKG': { lat: 22.3080, lng: 113.9185 }, // Hong Kong
+  'DXB': { lat: 25.2532, lng: 55.3657 }, // Dubai
 };
 
 /**
@@ -41,9 +77,26 @@ function dmsToDecimal(dms: string): number {
 }
 
 /**
- * Fetch airport data from AviationAPI
+ * Get airport data from airports.json
  */
-async function fetchAirportData(airportCode: string): Promise<{ lat: number; lng: number; city?: string; state?: string } | null> {
+function getAirportDataFromJson(airportCode: string): { lat: number; lng: number; city?: string; state?: string; country?: string } | null {
+  const airport = airportsData.find(a => a.code === airportCode.toUpperCase());
+  if (airport) {
+    return {
+      lat: airport.lat,
+      lng: airport.lng,
+      city: airport.city,
+      state: airport.state,
+      country: airport.country
+    };
+  }
+  return null;
+}
+
+/**
+ * Fetch airport data from AviationAPI (fallback for airports not in JSON)
+ */
+async function fetchAirportDataFromAPI(airportCode: string): Promise<{ lat: number; lng: number; city?: string; state?: string } | null> {
   try {
     const response = await fetch(`https://api.aviationapi.com/v1/airports?apt=${airportCode}`);
     if (!response.ok) {
@@ -75,7 +128,7 @@ async function fetchAirportData(airportCode: string): Promise<{ lat: number; lng
 }
 
 /**
- * Get airport coordinates, using cache first, then API, then fallback
+ * Get airport coordinates, using cache first, then JSON data, then API, then fallback
  */
 async function getAirportCoordinates(airportCode: string): Promise<{ lat: number; lng: number } | null> {
   // Check cache first
@@ -84,16 +137,24 @@ async function getAirportCoordinates(airportCode: string): Promise<{ lat: number
     return cached;
   }
 
-  // Try to fetch from API
-  const apiData = await fetchAirportData(airportCode);
+  // Try to get from airports.json first
+  const jsonData = getAirportDataFromJson(airportCode);
+  if (jsonData) {
+    airportCache.set(airportCode, jsonData);
+    return jsonData;
+  }
+
+  // Fallback to API for airports not in JSON
+  const apiData = await fetchAirportDataFromAPI(airportCode);
   if (apiData) {
     airportCache.set(airportCode, apiData);
     return apiData;
   }
 
-  // Use fallback data if available
+  // Use hardcoded fallback data as last resort
   const fallback = fallbackAirports[airportCode];
   if (fallback) {
+    airportCache.set(airportCode, fallback);
     return fallback;
   }
 
@@ -187,48 +248,48 @@ export async function getAirportInfo(code: string): Promise<{ city?: string; sta
   // First check cache
   const cached = airportCache.get(code);
   if (cached) {
-    return { ...cached, country: 'USA' }; // Most airports in our system are USA
+    return cached;
   }
 
-  // Try to fetch from API
-  const apiData = await fetchAirportData(code);
+  // Try to get from airports.json first
+  const jsonData = getAirportDataFromJson(code);
+  if (jsonData) {
+    airportCache.set(code, jsonData);
+    return jsonData;
+  }
+
+  // Fallback to API
+  const apiData = await fetchAirportDataFromAPI(code);
   if (apiData) {
-    return { ...apiData, country: 'USA' };
+    const enrichedApiData = { ...apiData, country: 'Unknown' };
+    airportCache.set(code, enrichedApiData);
+    return enrichedApiData;
   }
 
-  // Use fallback if available
-  const fallbackInfo: Record<string, { city: string; state?: string }> = {
-    'JFK': { city: 'New York', state: 'New York' },
-    'LAX': { city: 'Los Angeles', state: 'California' },
-    'ORD': { city: 'Chicago', state: 'Illinois' },
-    'DFW': { city: 'Dallas', state: 'Texas' },
-    'ATL': { city: 'Atlanta', state: 'Georgia' },
-    'SFO': { city: 'San Francisco', state: 'California' },
-    'MIA': { city: 'Miami', state: 'Florida' },
-    'SEA': { city: 'Seattle', state: 'Washington' },
-    'BOS': { city: 'Boston', state: 'Massachusetts' },
-    'LAS': { city: 'Las Vegas', state: 'Nevada' },
-    'MCO': { city: 'Orlando', state: 'Florida' },
-    'DEN': { city: 'Denver', state: 'Colorado' },
-    'PHX': { city: 'Phoenix', state: 'Arizona' },
-    'IAH': { city: 'Houston', state: 'Texas' },
-    'MSP': { city: 'Minneapolis', state: 'Minnesota' },
-    'DTW': { city: 'Detroit', state: 'Michigan' },
-    'PHL': { city: 'Philadelphia', state: 'Pennsylvania' },
-    'CLT': { city: 'Charlotte', state: 'North Carolina' },
-    'EWR': { city: 'Newark', state: 'New Jersey' },
-    'LGA': { city: 'New York', state: 'New York' }
+  // Use hardcoded fallback data as last resort
+  const fallbackInfo: Record<string, { city: string; state?: string; country: string }> = {
+    'JFK': { city: 'New York', state: 'New York', country: 'United States' },
+    'LAX': { city: 'Los Angeles', state: 'California', country: 'United States' },
+    'ORD': { city: 'Chicago', state: 'Illinois', country: 'United States' },
+    'DFW': { city: 'Dallas', state: 'Texas', country: 'United States' },
+    'ATL': { city: 'Atlanta', state: 'Georgia', country: 'United States' },
+    'SFO': { city: 'San Francisco', state: 'California', country: 'United States' },
+    'MIA': { city: 'Miami', state: 'Florida', country: 'United States' },
+    'SEA': { city: 'Seattle', state: 'Washington', country: 'United States' },
+    'BOS': { city: 'Boston', state: 'Massachusetts', country: 'United States' },
+    'LAS': { city: 'Las Vegas', state: 'Nevada', country: 'United States' },
+    'MCO': { city: 'Orlando', state: 'Florida', country: 'United States' },
+    'HND': { city: 'Tokyo', country: 'Japan' },
+    'NRT': { city: 'Tokyo', country: 'Japan' },
   };
 
   const info = fallbackInfo[code];
   const coords = fallbackAirports[code];
   
   if (info || coords) {
-    return {
-      ...info,
-      ...coords,
-      country: 'USA'
-    };
+    const combined = { ...info, ...coords };
+    airportCache.set(code, combined);
+    return combined;
   }
 
   return null;

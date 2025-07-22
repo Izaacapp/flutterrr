@@ -25,7 +25,7 @@ export const Profile: React.FC = () => {
   const optionsMenuRef = useRef<HTMLDivElement>(null);
   
   const isOwnProfile = !username || username === currentUser?.username;
-  const user = isOwnProfile ? currentUser : profileUser;
+  const user = isOwnProfile ? (profileUser || currentUser) : profileUser;
   const { 
     selectedImage, 
     previewUrl, 
@@ -61,6 +61,19 @@ export const Profile: React.FC = () => {
         } finally {
           setLoading(false);
         }
+      } else if (isOwnProfile) {
+        // For own profile, fetch fresh data to ensure sync
+        const fetchOwnProfile = async () => {
+          try {
+            const response = await userService.getProfile();
+            if (response.status === 'success') {
+              setProfileUser(response.data.user);
+            }
+          } catch (error) {
+            console.error('Error fetching own profile:', error);
+          }
+        };
+        fetchOwnProfile();
       }
     };
 
@@ -607,8 +620,29 @@ export const Profile: React.FC = () => {
                 <path d="M17.8 19.2L16 11l3.5-3.5C21 6 21 5 21 5s-1 0-2.5 1.5L15 10l-8.2-1.8c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-5 2c-.6.3-.6 1.2 0 1.5L8 17l4-2 1.2 3.3c.3.4.8.5 1.3.3l.5-.3c.4-.2.6-.6.5-1.1"/>
               </svg>
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>12</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+              {user?.totalFlights?.toLocaleString() || '0'}
+            </div>
             <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Total Flights</div>
+          </div>
+          
+          <div style={{ 
+            padding: '1.25rem', 
+            backgroundColor: 'var(--pb-ultra-light)', 
+            borderRadius: '8px',
+            border: '1px solid var(--pb-light-periwinkle)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '2rem', marginBottom: '0.5rem', display: 'flex', justifyContent: 'center' }}>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--pb-dark-purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+              {user?.citiesVisited?.toLocaleString() || '0'}
+            </div>
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Cities Visited</div>
           </div>
           
           <div style={{ 
@@ -666,7 +700,9 @@ export const Profile: React.FC = () => {
                 <polyline points="12,6 12,12 16,14"/>
               </svg>
             </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>48</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937' }}>
+              {user?.flightHours || '0'}
+            </div>
             <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Flight Hours</div>
           </div>
         </div>

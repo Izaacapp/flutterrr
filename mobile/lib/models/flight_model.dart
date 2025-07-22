@@ -15,7 +15,7 @@ class Flight {
   final String? boardingGroup;
   final double? distance;
   final int? duration;
-  final int? points;
+  final double? flightHours;
   final String? boardingPassUrl;
   final String status;
   final DateTime createdAt;
@@ -38,7 +38,7 @@ class Flight {
     this.boardingGroup,
     this.distance,
     this.duration,
-    this.points,
+    this.flightHours,
     this.boardingPassUrl,
     required this.status,
     required this.createdAt,
@@ -67,7 +67,7 @@ class Flight {
       boardingGroup: json['boardingGroup'],
       distance: json['distance']?.toDouble(),
       duration: json['duration'],
-      points: json['points'],
+      flightHours: json['flightHours']?.toDouble(),
       boardingPassUrl: json['boardingPassUrl'],
       status: json['status'] ?? 'upcoming',
       createdAt: DateTime.parse(json['createdAt']),
@@ -91,7 +91,7 @@ class Flight {
       'boardingGroup': boardingGroup,
       'distance': distance,
       'duration': duration,
-      'points': points,
+      'flightHours': flightHours,
       'boardingPassUrl': boardingPassUrl,
       'status': status,
     };

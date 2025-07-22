@@ -49,7 +49,6 @@ class FlightCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM dd, yyyy');
-    final timeFormat = DateFormat('HH:mm');
 
     return Card(
       elevation: 2,
@@ -213,13 +212,6 @@ class FlightCard extends StatelessWidget {
                               fontSize: 14,
                             ),
                           ),
-                          Text(
-                            timeFormat.format(flight.scheduledDepartureTime),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -255,56 +247,27 @@ class FlightCard extends StatelessWidget {
                               fontSize: 14,
                             ),
                           ),
-                          Text(
-                            timeFormat.format(flight.scheduledArrivalTime),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
                         ],
                       ),
                     ),
                   ],
                 ),
                 // Bottom info
-                if (flight.seatNumber != null ||
-                    flight.confirmationCode.isNotEmpty) ...[
+                if (flight.seatNumber != null) ...[
                   const SizedBox(height: 12),
                   const Divider(),
                   const SizedBox(height: 8),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      if (flight.seatNumber != null)
-                        Row(
-                          children: [
-                            Icon(Icons.event_seat,
-                                size: 16, color: Colors.grey[600]),
-                            const SizedBox(width: 4),
-                            Text(
-                              'Seat ${flight.seatNumber}',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
+                      Icon(Icons.event_seat,
+                          size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Seat ${flight.seatNumber}',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
                         ),
-                      Row(
-                        children: [
-                          Icon(Icons.confirmation_number,
-                              size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            flight.confirmationCode,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),

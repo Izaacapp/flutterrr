@@ -34,7 +34,7 @@ export interface Flight {
   boardingGroup?: string;
   distance?: number;
   duration?: number;
-  points?: number;
+  flightHours?: number;
   boardingPassUrl?: string;
   status: 'upcoming' | 'completed' | 'cancelled' | 'delayed';
   createdAt: string;
@@ -45,7 +45,7 @@ export interface FlightStats {
   summary: {
     totalFlights: number;
     totalDistance: number;
-    totalPoints: number;
+    totalHours: number;
     uniqueAirlines: number;
     uniqueDestinations: number;
   };
@@ -53,7 +53,7 @@ export interface FlightStats {
     _id: number;
     count: number;
     distance: number;
-    points: number;
+    hours: number;
   }>;
   topRoutes: Array<{
     _id: {
@@ -205,6 +205,19 @@ class FlightService {
     if (!response.ok) {
       throw new Error('Failed to delete flight');
     }
+  }
+
+  async syncUserMiles(): Promise<{ totalMiles: number; totalHours: number }> {
+    const response = await fetch(`${API_URL}/flights/sync-miles`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to sync user miles and hours');
+    }
+
+    return response.json();
   }
 }
 

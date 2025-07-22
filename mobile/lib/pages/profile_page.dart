@@ -1,11 +1,14 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
 import '../providers/auth_provider.dart';
 import '../core/theme/app_theme.dart';
 import '../core/config/app_config.dart';
+import '../core/api/api_config.dart';
 import '../widgets/avatar.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -19,10 +22,59 @@ class _ProfilePageState extends State<ProfilePage> {
   final ImagePicker _picker = ImagePicker();
   File? _selectedImage;
   bool _isUploading = false;
+  Map<String, dynamic>? _userStats;
+  bool _isLoadingStats = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserStats();
+  }
 
   @override
   void dispose() {
     super.dispose();
+  }
+
+  Future<void> _fetchUserStats() async {
+    setState(() {
+      _isLoadingStats = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = await authProvider.getAuthToken();
+      
+      if (token != null) {
+        final apiUrl = await ApiConfig.discoverEndpoint();
+        final baseUrl = apiUrl.replaceAll('/graphql', '');
+        
+        final response = await http.get(
+          Uri.parse('$baseUrl/api/users/profile'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = json.decode(response.body);
+          if (mounted) {
+            setState(() {
+              _userStats = data['data']['user'];
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Error fetching user stats: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingStats = false;
+        });
+      }
+    }
   }
 
   @override
@@ -180,10 +232,31 @@ class _ProfilePageState extends State<ProfilePage> {
                         mainAxisSpacing: 16,
                         childAspectRatio: 1.4,
                         children: [
-                          _buildStatCard(Icons.flight_takeoff, '12', 'Total Flights'),
-                          _buildStatCard(Icons.straighten, '${user?.milesFlown?.toString() ?? '0'}', 'Miles Flown'),
-                          _buildStatCard(Icons.public, '${user?.countriesVisited?.length ?? 0}', 'Countries'),
-                          _buildStatCard(Icons.schedule, '48', 'Flight Hours'),
+                          _buildStatCard(
+                            Icons.flight_takeoff, 
+                            _isLoadingStats ? '...' : '${_userStats?['totalFlights'] ?? user?.totalFlights ?? 0}', 
+                            'Total Flights'
+                          ),
+                          _buildStatCard(
+                            Icons.location_city, 
+                            _isLoadingStats ? '...' : '${_userStats?['citiesVisited'] ?? user?.citiesVisited ?? 0}', 
+                            'Cities Visited'
+                          ),
+                          _buildStatCard(
+                            Icons.straighten, 
+                            _isLoadingStats ? '...' : '${_userStats?['milesFlown'] ?? user?.milesFlown ?? 0}', 
+                            'Miles Flown'
+                          ),
+                          _buildStatCard(
+                            Icons.schedule, 
+                            _isLoadingStats ? '...' : '${_userStats?['flightHours'] ?? user?.flightHours ?? 0}', 
+                            'Flight Hours'
+                          ),
+                          _buildStatCard(
+                            Icons.public, 
+                            _isLoadingStats ? '...' : '${_userStats?['countriesVisited']?.length ?? user?.countriesVisited?.length ?? 0}', 
+                            'Countries'
+                          ),
                         ],
                       ),
                     ],
@@ -345,9 +418,11 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e')),
+        );
+      }
     }
   }
 
@@ -388,14 +463,18 @@ class _ProfilePageState extends State<ProfilePage> {
         // Refresh user data by reinitializing
         await authProvider.refresh();
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Avatar updated successfully')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Avatar updated successfully')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to upload avatar: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to upload avatar: $e')),
+        );
+      }
     } finally {
       setState(() {
         _isUploading = false;

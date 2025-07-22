@@ -49,14 +49,12 @@ export interface AirportInfo {
   city?: string;
   airportCode: string;
   scheduledTime: string;
-  gate?: string;
   terminal?: string;
 }
 
 export interface BoardingInfo {
   seatNumber: string;
   boardingGroup?: string;
-  gate: string;
   boardingTime?: string;
   sequenceNumber?: number;
   classOfService?: string;
@@ -380,26 +378,7 @@ export async function parseBoardingPassV2(buffer: Buffer, mimeType: string): Pro
       }
     }
     
-    // Parse gate - CRITICAL PART
-    const gateMatches = extractAllMatches(normalizedText, PATTERNS.GATE);
-    const depGateMatches = extractAllMatches(normalizedText, PATTERNS.DEPARTURE_GATE);
-    const gateTimeSeatMatch = normalizedText.match(PATTERNS.GATE_TIME_SEAT);
-    
-    let gate = '';
-    if (depGateMatches.length > 0) {
-      gate = depGateMatches[0];
-    } else if (gateMatches.length > 0) {
-      gate = gateMatches[0];
-    } else if (gateTimeSeatMatch) {
-      gate = gateTimeSeatMatch[1];
-    }
-    
-    console.log('GATE EXTRACTION:', {
-      gateMatches,
-      depGateMatches,
-      gateTimeSeatMatch: gateTimeSeatMatch ? gateTimeSeatMatch[1] : null,
-      finalGate: gate
-    });
+    // Gate information removed - no longer displayed
     
     // Parse terminals
     const terminalMatches = extractAllMatches(normalizedText, PATTERNS.TERMINAL);
@@ -410,10 +389,7 @@ export async function parseBoardingPassV2(buffer: Buffer, mimeType: string): Pro
       }
     }
     
-    // Set gate on departure
-    if (gate) {
-      flight.departure.gate = gate;
-    }
+    // Gate assignment removed - no longer displayed
     
     // Parse boarding info
     const seatMatches = [...normalizedText.matchAll(PATTERNS.SEAT_NUMBER)];
@@ -423,7 +399,6 @@ export async function parseBoardingPassV2(buffer: Buffer, mimeType: string): Pro
     
     const boardingInfo: BoardingInfo = {
       seatNumber: seatMatches.length > 0 ? `${seatMatches[0][1]}${seatMatches[0][2]}` : 'Unknown',
-      gate: gate || 'Unknown',
       boardingGroup: boardingGroupMatches[0],
       boardingTime: boardingTimeMatches.length > 0 ? parseDateTime(parseDate(dateMatches[0]), boardingTimeMatches[0]) : undefined,
       classOfService: classMatches[0]
@@ -455,8 +430,7 @@ export function convertToLegacyFormat(boardingPass: BoardingPass): any {
     origin: {
       airportCode: boardingPass.flight.departure.airportCode,
       city: boardingPass.flight.departure.city || boardingPass.flight.departure.airportCode,
-      country: 'USA',
-      gate: boardingPass.flight.departure.gate
+      country: 'USA'
     },
     destination: {
       airportCode: boardingPass.flight.arrival.airportCode,
