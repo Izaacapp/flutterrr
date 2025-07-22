@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import User from '../models/User';
+import { NotificationService } from '../services/notification.service';
 import AppError from '../utils/appError';
 import catchAsync from '../utils/catchAsync';
 
@@ -164,6 +165,17 @@ export const followUser = catchAsync(async (req: AuthRequest, res: Response, nex
   await User.findByIdAndUpdate(currentUserId, {
     $addToSet: { following: targetUserId }
   });
+
+  // Create follow notification
+  try {
+    await NotificationService.createFollowNotification(
+      targetUserId,
+      currentUserId,
+      currentUser
+    );
+  } catch (notificationError) {
+    console.error('Error creating follow notification:', notificationError);
+  }
 
   res.status(200).json({
     status: 'success',

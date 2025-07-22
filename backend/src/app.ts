@@ -12,6 +12,7 @@ import userRoutes from './routes/v1/user.routes';
 import healthRoutes from './routes/health';
 import flightRoutes from './routes/v1/flight.routes';
 import humanVerifyRoutes from './routes/v1/humanVerify.routes';
+import notificationRoutes from './routes/v1/notification.routes';
 import { env } from './config/env';
 import errorHandler from './middleware/errorHandler';
 import { validationRouter } from './services/boardingPassValidation.service';
@@ -80,6 +81,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/flights', flightRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/boarding-pass', validationRouter);
 app.use('/api/human-verify', humanVerifyRoutes);
 

@@ -41,6 +41,24 @@ export default buildSchema(`
         createdAt: String!
     }
 
+    type Notification {
+        _id: ID!
+        sender: User!
+        type: String!
+        message: String!
+        relatedPost: Post
+        relatedComment: String
+        isRead: Boolean!
+        createdAt: String!
+        updatedAt: String!
+    }
+
+    type NotificationResponse {
+        notifications: [Notification!]!
+        totalCount: Int!
+        unreadCount: Int!
+    }
+
     input PostInput {
         content: String!
     }
@@ -58,11 +76,16 @@ export default buildSchema(`
         posts: [Post!]!
         user(userId: ID): User
         me: User
+        notifications(page: Int, limit: Int): NotificationResponse
+        unreadNotificationCount: Int
     }
 
     type RootMutation {
         createPost(postInput: PostInput!): Post
         updateProfile(input: UpdateProfileInput!): User
+        markNotificationAsRead(notificationId: ID!): Notification
+        markAllNotificationsAsRead: Boolean
+        deleteNotification(notificationId: ID!): Boolean
     }
 
     schema {
