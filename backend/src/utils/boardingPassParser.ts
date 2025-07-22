@@ -120,12 +120,13 @@ function extractStructuredData(text: string): ParsedBoardingPass | null {
       flight: /(?:FLIGHT|FLT|FL)\s*(?:NUMBER|NO|#)?[:\s]*([A-Z]{2,3}\s*\d{1,4}[A-Z]?)/i,
       date: /(?:DATE|ON)[:\s]*(\d{1,2}\s*(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\s*\d{2,4})/i,
       time: /(?:TIME|DEPART|DEPARTURE)[:\s]*(\d{1,2}:\d{2})/i,
+      departureTime: /(?:DEP(?:ARTS?|ARTURE)?|LEAVES?)\s*(?:TIME|AT)?\s*[:\s]*(\d{1,2}:\d{2}(?:\s*[AP]M?)?)/i,
+      arrivalTime: /(?:ARR(?:IVES?|IVAL)?|LANDS?)\s*(?:TIME|AT)?\s*[:\s]*(\d{1,2}:\d{2}(?:\s*[AP]M?)?)/i,
       gate: /(?:GATE|GT|G)[:\s]*([A-Z0-9]+)/i,
       departureGate: /(?:DEPARTURE\s*GATE|DEP\s*GATE|FROM\s*GATE)[:\s]*([A-Z0-9]+)/i,
       arrivalGate: /(?:ARRIVAL\s*GATE|ARR\s*GATE|TO\s*GATE)[:\s]*([A-Z0-9]+)/i,
       seat: /SEAT[:\s]*(\d{1,3}[A-Z])/i,
       boardingTime: /BOARDING\s*(?:TILL|TIME|BY)?[:\s]*(\d{1,2}:\d{2})/i,
-      arrivalTime: /(?:ARRIVAL|ARRIVE)\s*(?:TIME)?[:\s]*(\d{1,2}:\d{2})/i,
       terminal: /(?:TERMINAL|TERM)[:\s]*([A-Z0-9]+)/i,
       eticket: /(?:E-?TICKET|TICKET)[:\s#]*(\d{10,})/i,
       confirmation: /(?:CONFIRMATION|CONF|PNR|BOOKING)[:\s#]*([A-Z0-9]{5,7})/i,
@@ -209,8 +210,8 @@ function extractStructuredData(text: string): ParsedBoardingPass | null {
           country: 'USA',
           gate: data.arrivalGate || undefined
         },
-        scheduledDepartureTime: parseFlightDateTime(data.date, data.time),
-        scheduledArrivalTime: parseFlightDateTime(data.date, data.arrivalTime || data.time),
+        scheduledDepartureTime: parseFlightDateTime(data.date, data.departureTime || data.time),
+        scheduledArrivalTime: parseFlightDateTime(data.date, data.arrivalTime || data.departureTime || data.time),
         seatNumber: data.seat,
         boardingGroup: data.boardingGroup || data.zone || ''
       };

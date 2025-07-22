@@ -86,9 +86,11 @@ const PATTERNS = {
   // Terminal patterns
   TERMINAL: /(?:TERMINAL|TERM|T)\s*[:#]?\s*([A-Z0-9]{1,2})\b/gi,
   
-  // Time patterns
-  TIME_12H: /\b(\d{1,2}):(\d{2})\s*(AM|PM|A|P)\b/gi,
-  TIME_24H: /\b([01]?\d|2[0-3]):([0-5]\d)\b/g,
+  // Time patterns - MORE SPECIFIC
+  TIME_12H: /\b(0?[1-9]|1[0-2]):([0-5]\d)\s*([AP]M?)\b/gi,  // More precise 12-hour
+  TIME_24H: /\b([01]?\d|2[0-3]):([0-5]\d)(?!\s*[AP]M?)\b/g, // Negative lookahead for AM/PM
+  DEPARTURE_TIME: /(?:DEP(?:ARTS?|ARTURE)?|LEAVES?|FROM)\s*(?:TIME|AT|BY)?\s*[:#]?\s*(\d{1,2}:\d{2}(?:\s*[AP]M?)?)\b/gi,
+  ARRIVAL_TIME: /(?:ARR(?:IVES?|IVAL)?|LANDS?|TO)\s*(?:TIME|AT|BY)?\s*[:#]?\s*(\d{1,2}:\d{2}(?:\s*[AP]M?)?)\b/gi,
   BOARDING_TIME: /(?:BOARDING|BOARDS?|BRD)\s*(?:TIME|AT|BY)?\s*[:#]?\s*(\d{1,2}:\d{2}(?:\s*[AP]M?)?)\b/gi,
   
   // Date patterns
@@ -334,17 +336,45 @@ export async function parseBoardingPassV2(buffer: Buffer, mimeType: string): Pro
       return null;
     }
     
-    // Parse dates and times
+    // Parse dates and times with contextual patterns
     const dateMatches = extractAllMatches(normalizedText, PATTERNS.DATE_SHORT);
-    const timeMatches = [...normalizedText.matchAll(PATTERNS.TIME_12H), ...normalizedText.matchAll(PATTERNS.TIME_24H)];
+    const depTimeMatches = extractAllMatches(normalizedText, PATTERNS.DEPARTURE_TIME);
+    const arrTimeMatches = extractAllMatches(normalizedText, PATTERNS.ARRIVAL_TIME);
+    const genericTimeMatches = [...normalizedText.matchAll(PATTERNS.TIME_12H), ...normalizedText.matchAll(PATTERNS.TIME_24H)];
     
-    if (dateMatches.length > 0 && timeMatches.length > 0) {
+    console.log('TIME EXTRACTION:', {
+      dates: dateMatches,
+      departureTimes: depTimeMatches,
+      arrivalTimes: arrTimeMatches,
+      genericTimes: genericTimeMatches.map(m => m[0])
+    });
+    
+    if (dateMatches.length > 0) {
       const flightDate = parseDate(dateMatches[0]);
-      const depTime = timeMatches[0][0];
-      flight.departure.scheduledTime = parseDateTime(flightDate, depTime);
       
-      if (timeMatches.length > 1) {
-        flight.arrival.scheduledTime = parseDateTime(flightDate, timeMatches[1][0]);
+      // Try contextual departure time first
+      if (depTimeMatches.length > 0) {
+        flight.departure.scheduledTime = parseDateTime(flightDate, depTimeMatches[0]);
+      }
+      
+      // Try contextual arrival time
+      if (arrTimeMatches.length > 0) {
+        flight.arrival.scheduledTime = parseDateTime(flightDate, arrTimeMatches[0]);
+      }
+      
+      // Fallback to generic times if no contextual times found
+      if (!depTimeMatches.length && !arrTimeMatches.length && genericTimeMatches.length > 0) {
+        // First time is usually departure
+        flight.departure.scheduledTime = parseDateTime(flightDate, genericTimeMatches[0][0]);
+        
+        // Second time (if exists) is usually arrival
+        if (genericTimeMatches.length > 1) {
+          flight.arrival.scheduledTime = parseDateTime(flightDate, genericTimeMatches[1][0]);
+        } else {
+          // Estimate arrival time as 2 hours after departure if only one time found
+          const depDate = new Date(flight.departure.scheduledTime);
+          flight.arrival.scheduledTime = new Date(depDate.getTime() + 2 * 60 * 60 * 1000).toISOString();
+        }
       }
     }
     
@@ -419,24 +449,43 @@ export async function parseBoardingPassV2(buffer: Buffer, mimeType: string): Pro
 
 // Convert to legacy format for compatibility
 export function convertToLegacyFormat(boardingPass: BoardingPass): any {
-  return {
-    airline: boardingPass.flight.airline.name || 'Other',
-    flightNumber: boardingPass.flight.flightNumber,
-    confirmationCode: boardingPass.passenger.pnrCode || 'UNKNOWN',
+  const result: any = {
     origin: {
       airportCode: boardingPass.flight.departure.airportCode,
-      city: boardingPass.flight.departure.city,
+      city: boardingPass.flight.departure.city || boardingPass.flight.departure.airportCode,
       country: 'USA',
       gate: boardingPass.flight.departure.gate
     },
     destination: {
       airportCode: boardingPass.flight.arrival.airportCode,
-      city: boardingPass.flight.arrival.city,
+      city: boardingPass.flight.arrival.city || boardingPass.flight.arrival.airportCode,
       country: 'USA'
     },
     scheduledDepartureTime: new Date(boardingPass.flight.departure.scheduledTime),
     scheduledArrivalTime: new Date(boardingPass.flight.arrival.scheduledTime),
-    seatNumber: boardingPass.boardingInfo.seatNumber,
-    boardingGroup: boardingPass.boardingInfo.boardingGroup
+    status: 'upcoming'
   };
+  
+  // Add optional fields if they exist
+  if (boardingPass.flight.airline.name || boardingPass.flight.airline.iataCode) {
+    result.airline = boardingPass.flight.airline.name || boardingPass.flight.airline.iataCode;
+  }
+  
+  if (boardingPass.flight.flightNumber) {
+    result.flightNumber = boardingPass.flight.flightNumber;
+  }
+  
+  if (boardingPass.boardingInfo.seatNumber) {
+    result.seatNumber = boardingPass.boardingInfo.seatNumber;
+  }
+  
+  if (boardingPass.passenger.pnrCode) {
+    result.confirmationCode = boardingPass.passenger.pnrCode;
+  }
+  
+  if (boardingPass.boardingInfo.boardingGroup) {
+    result.boardingGroup = boardingPass.boardingInfo.boardingGroup;
+  }
+  
+  return result;
 }
