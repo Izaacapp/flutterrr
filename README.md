@@ -14,18 +14,7 @@ Passport Buddy is a comprehensive travel management platform that combines socia
 
 ### System Design
 
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Flutter   │     │    React    │     │   GraphQL   │
-│   Mobile    │────▶│   Frontend  │────▶│     API     │
-└─────────────┘     └─────────────┘     └─────────────┘
-                            │                    │
-                            ▼                    ▼
-                    ┌─────────────┐     ┌─────────────┐
-                    │  Socket.io  │     │   MongoDB   │
-                    │  Real-time  │     │  Database   │
-                    └─────────────┘     └─────────────┘
-```
+![Passport Buddy System Architecture](Passport-buddy.svg)
 
 ### Technology Stack
 
