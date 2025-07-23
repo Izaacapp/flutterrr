@@ -1,5 +1,0 @@
-{
-  "http": {"port": 80, "ipv6": true},
-  "https": {"port": 443, "ipv6": true},
-  "ssh": {"port": 2222, "ipv6": false}
-}

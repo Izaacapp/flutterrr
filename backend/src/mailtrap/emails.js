@@ -1,162 +1,151 @@
-const { PASSWORD_RESET_REQUEST_TEMPLATE, VERIFICATION_EMAIL_TEMPLATE, WELCOME_EMAIL_TEMPLATE, PASSWORD_RESET_SUCCESS_TEMPLATE, PASSWORD_RESET_OTP_TEMPLATE } = require("./emailTemplate.js");
-const { mailtrapClient, sender } = require("./mailtrap.config.js");
-
-const sendVerificationEmail = async (email, verificationToken, name) => {
-    const recipient = [{ email }];
-
-    console.log("📧 Sending verification email to:", email);
-    console.log("📧 From:", sender);
-    console.log("📧 Verification code:", verificationToken);
-
-    // In development mode, create a mock email service
-    if (process.env.NODE_ENV === 'development' && !process.env.MAILTRAP_TOKEN) {
-        console.log('\n=================================');
-        console.log('📧 DEVELOPMENT MODE - EMAIL PREVIEW');
-        console.log('=================================');
-        console.log('To:', email);
-        console.log('Subject: Verify Your Email');
-        console.log('From:', sender.email);
-        console.log('---------------------------------');
-        console.log(`Hello ${name},\n`);
-        console.log('Your verification code is:\n');
-        console.log(`    🔐 ${verificationToken}\n`);
-        console.log('Enter this code on the verification page.');
-        console.log('This code expires in 15 minutes.');
-        console.log('=================================\n');
-        
-        // Create a development email file
-        const fs = require('fs');
-        const path = require('path');
-        const emailDir = path.join(__dirname, '../../dev-emails');
-        if (!fs.existsSync(emailDir)) {
-            fs.mkdirSync(emailDir, { recursive: true });
-        }
-        
-        const emailContent = VERIFICATION_EMAIL_TEMPLATE
-            .replace("{verificationCode}", verificationToken)
-            .replace("{name}", name);
-        
-        const filename = `verification_${Date.now()}_${email.replace('@', '_at_')}.html`;
-        fs.writeFileSync(path.join(emailDir, filename), emailContent);
-        console.log(`📧 Email saved to: backend/dev-emails/${filename}`);
-        
-        return; // Don't throw error in development
-    }
-
-    try {
-        const response = await mailtrapClient.send({
-            from: sender,
-            to: recipient,
-            subject: "Verify Your Email",
-            html: VERIFICATION_EMAIL_TEMPLATE
-                .replace("{verificationCode}", verificationToken)
-                .replace("{name}", name),
-            category: "Email Verification"
-        })
-        console.log("Email sent successfully:", response);
-    } catch (error) {
-        console.error("Error sending verification email:", error);
-        throw new Error(`Failed to send verification email: ${error}`);
-    }
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.sendPasswordResetSuccessEmail = exports.sendPasswordResetOTP = exports.sendWelcomeEmail = exports.sendVerificationEmail = void 0;
+const email_service_1 = require("../services/email.service");
+const sendVerificationEmail = async (email, otp, name) => {
+    const subject = 'Verify Your Email - Passport Buddy';
+    const text = `Hi ${name}, Your verification code is: ${otp}. This code will expire in 24 hours.`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .otp-code { font-size: 32px; font-weight: bold; color: #667eea; text-align: center; padding: 20px; background: white; border-radius: 8px; margin: 20px 0; letter-spacing: 5px; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✈️ Passport Buddy</h1>
+          <p>Email Verification</p>
+        </div>
+        <div class="content">
+          <h2>Hi ${name}!</h2>
+          <p>Thank you for signing up. Please verify your email address using the code below:</p>
+          
+          <div class="otp-code">${otp}</div>
+          
+          <p>This code will expire in 24 hours.</p>
+          
+          <p>Happy travels!<br>The Passport Buddy Team</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+    return email_service_1.emailService.sendEmail({ to: email, subject, text, html });
 };
-
-const sendPasswordResetOTP = async (email, otp, name) => {
-    const recipient = [{ email }];
-
-    // In development mode, create a mock email service
-    if (process.env.NODE_ENV === 'development' && !process.env.MAILTRAP_TOKEN) {
-        console.log('\n=================================');
-        console.log('📧 DEVELOPMENT MODE - EMAIL PREVIEW');
-        console.log('=================================');
-        console.log('To:', email);
-        console.log('Subject: Password Reset Code');
-        console.log('From:', sender.email);
-        console.log('---------------------------------');
-        console.log(`Hello ${name},\n`);
-        console.log('Your password reset code is:\n');
-        console.log(`    🔐 ${otp}\n`);
-        console.log('Enter this code on the password reset page.');
-        console.log('This code expires in 5 minutes.');
-        console.log('=================================\n');
-        
-        // Create a development email file
-        const fs = require('fs');
-        const path = require('path');
-        const emailDir = path.join(__dirname, '../../dev-emails');
-        if (!fs.existsSync(emailDir)) {
-            fs.mkdirSync(emailDir, { recursive: true });
-        }
-        
-        const emailContent = PASSWORD_RESET_OTP_TEMPLATE
-            .replace("{verificationCode}", otp)
-            .replace("{name}", name);
-        
-        const filename = `password_reset_${Date.now()}_${email.replace('@', '_at_')}.html`;
-        fs.writeFileSync(path.join(emailDir, filename), emailContent);
-        console.log(`📧 Email saved to: backend/dev-emails/${filename}`);
-        
-        return; // Don't throw error in development
-    }
-
-    try {
-        const response = await mailtrapClient.send({
-            from: sender,
-            to: recipient,
-            subject: "Password Reset Code",
-            html: PASSWORD_RESET_OTP_TEMPLATE
-                .replace("{verificationCode}", otp)
-                .replace("{name}", name),
-            category: "Password Reset OTP"
-        });
-
-        console.log("Password reset OTP email sent successfully", response);
-    } catch (error) {
-        console.error("Error sending password reset OTP email:", error);
-        throw new Error(`Error sending password reset OTP email: ${error}`);
-    }
-};
-
+exports.sendVerificationEmail = sendVerificationEmail;
 const sendWelcomeEmail = async (email, name) => {
-    const recipient = [{ email }];
-
-    try {
-        const response = await mailtrapClient.send({
-            from: sender,
-            to: recipient,
-            subject: "Welcome to Passport Buddy!",
-            html: WELCOME_EMAIL_TEMPLATE.replace("{name}", name),
-            category: "Welcome Email"
-        });
-
-        console.log("Welcome email sent successfully", response);
-    } catch (error) {
-        console.error(`Error sending welcome email`, error);
-        throw new Error(`Error sending welcome email: ${error}`);
-    }
+    const subject = 'Welcome to Passport Buddy!';
+    const text = `Hi ${name}, Welcome to Passport Buddy! Your email has been verified successfully.`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✈️ Welcome to Passport Buddy!</h1>
+        </div>
+        <div class="content">
+          <h2>Hi ${name}!</h2>
+          <p>Your email has been verified successfully. You're now ready to:</p>
+          <ul>
+            <li>Track your travel destinations</li>
+            <li>Share your adventures</li>
+            <li>Connect with fellow travelers</li>
+          </ul>
+          <p>Happy travels!<br>The Passport Buddy Team</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+    return email_service_1.emailService.sendEmail({ to: email, subject, text, html });
 };
-
+exports.sendWelcomeEmail = sendWelcomeEmail;
+const sendPasswordResetOTP = async (email, otp, name) => {
+    const subject = 'Password Reset - Passport Buddy';
+    const text = `Hi ${name}, Your password reset code is: ${otp}. This code will expire in 5 minutes.`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .otp-code { font-size: 32px; font-weight: bold; color: #e74c3c; text-align: center; padding: 20px; background: white; border-radius: 8px; margin: 20px 0; letter-spacing: 5px; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔐 Password Reset</h1>
+        </div>
+        <div class="content">
+          <h2>Hi ${name}!</h2>
+          <p>You requested to reset your password. Use the code below:</p>
+          
+          <div class="otp-code">${otp}</div>
+          
+          <div class="warning">
+            <strong>Important:</strong> This code will expire in 5 minutes. If you didn't request this, please ignore this email.
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+    return email_service_1.emailService.sendEmail({ to: email, subject, text, html });
+};
+exports.sendPasswordResetOTP = sendPasswordResetOTP;
 const sendPasswordResetSuccessEmail = async (email, name) => {
-    const recipient = [{ email }];
-
-    try {
-        const response = await mailtrapClient.send({
-            from: sender,
-            to: recipient,
-            subject: "Password Reset Successful",
-            html: PASSWORD_RESET_SUCCESS_TEMPLATE.replace("{name}", name),
-            category: "Password Reset Success"
-        });
-
-        console.log("Password reset success email sent successfully", response);
-    } catch (error) {
-        console.error(`Error sending password reset success email`, error);
-        throw new Error(`Error sending password reset success email: ${error}`);
-    }
+    const subject = 'Password Reset Successful - Passport Buddy';
+    const text = `Hi ${name}, Your password has been reset successfully.`;
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>✅ Password Reset Successful</h1>
+        </div>
+        <div class="content">
+          <h2>Hi ${name}!</h2>
+          <div class="success">
+            Your password has been reset successfully. You can now log in with your new password.
+          </div>
+          <p>If you didn't make this change, please contact our support team immediately.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+    return email_service_1.emailService.sendEmail({ to: email, subject, text, html });
 };
-
-module.exports = {
-    sendVerificationEmail,
-    sendPasswordResetOTP,  
-    sendWelcomeEmail,
-    sendPasswordResetSuccessEmail
-};
+exports.sendPasswordResetSuccessEmail = sendPasswordResetSuccessEmail;
