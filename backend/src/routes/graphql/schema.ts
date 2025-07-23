@@ -37,6 +37,7 @@ export default buildSchema(`
         content: String!
         images: [Image!]!
         likes: [String!]!
+        bookmarks: [String!]!
         comments: [Comment!]!
         createdAt: String!
     }
@@ -54,10 +55,17 @@ export default buildSchema(`
         avatar: String
     }
 
+    type AuthVerification {
+        valid: Boolean!
+        message: String
+        user: User
+    }
+
     type RootQuery {
         posts: [Post!]!
         user(userId: ID): User
         me: User
+        verifyAuth: AuthVerification!
     }
 
     type RootMutation {

@@ -1,0 +1,61 @@
+.video-player-container {
+  transition: all 0.2s ease;
+}
+
+.video-player-container:hover {
+  transform: scale(1.01);
+}
+
+.video-thumbnail {
+  transition: opacity 0.3s ease;
+}
+
+.play-overlay {
+  transition: all 0.2s ease;
+}
+
+.play-overlay:hover {
+  transform: translate(-50%, -50%) scale(1.1);
+  background-color: rgba(0, 0, 0, 0.8) !important;
+}
+
+.video-controls {
+  transition: opacity 0.3s ease;
+}
+
+.video-controls button:hover {
+  opacity: 0.8;
+}
+
+/* Loading spinner for video */
+.video-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid #8b5cf6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  z-index: 5;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .video-controls {
+    padding: 15px 10px 10px;
+  }
+  
+  .play-overlay {
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 20px !important;
+  }
+}

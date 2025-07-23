@@ -1,57 +1,48 @@
 import { Schema, model, Document } from 'mongoose';
+import { FlightStatus, BarcodeData, AirportLocation } from '@my-app/shared';
 
+// Extend the shared Flight interface for MongoDB Document
 export interface IFlight extends Document {
   userId: Schema.Types.ObjectId;
   
   // Basic flight info
   airline: string;
+  airlineCode?: string;
   airlineLogo?: string;
   flightNumber: string;
   confirmationCode: string;
   eticketNumber?: string;
   
   // Route info
-  origin: {
-    airportCode: string;
-    airportName?: string;
-    city: string;
-    country: string;
-    terminal?: string;
-    gate?: string;
-  };
-  destination: {
-    airportCode: string;
-    airportName?: string;
-    city: string;
-    country: string;
-    terminal?: string;
-    gate?: string;
-  };
+  origin: AirportLocation;
+  destination: AirportLocation;
+  distance?: number; // in miles
+  duration?: number; // in minutes
   
   // Time info
   scheduledDepartureTime: Date;
   scheduledArrivalTime: Date;
   actualDepartureTime?: Date;
   actualArrivalTime?: Date;
+  boardingTime?: Date;
   
-  // Seat info
-  seatNumber?: string;
+  // Boarding details
+  seatNumber: string;
   boardingGroup?: string;
+  boardingZone?: string;
+  sequenceNumber?: string;
+  classOfService?: 'economy' | 'premium-economy' | 'business' | 'first';
   
   // Flight stats
-  distance?: number; // in miles
-  duration?: number; // in minutes
-  points?: number; // calculated points
+  points?: number; // loyalty points earned
   
-  // Boarding pass
-  boardingPassUrl?: string; // stored in S3
-  barcode?: {
-    type: 'QR_CODE' | 'PDF417' | 'AZTEC' | 'DATA_MATRIX';
-    value: string;
-  };
+  // Documents
+  boardingPassUrl?: string; // S3 URL
+  barcode?: BarcodeData;
   
   // Status
-  status: 'upcoming' | 'completed' | 'cancelled' | 'delayed';
+  status: FlightStatus;
+  notes?: string;
   
   createdAt: Date;
   updatedAt: Date;
@@ -59,6 +50,41 @@ export interface IFlight extends Document {
   // Methods
   calculatePoints(): number;
 }
+
+// Airport location sub-schema
+const airportLocationSchema = new Schema({
+  airportCode: {
+    type: String,
+    required: true,
+    uppercase: true,
+    minlength: 3,
+    maxlength: 3
+  },
+  airportName: String,
+  city: {
+    type: String,
+    required: true
+  },
+  country: {
+    type: String,
+    required: false
+  },
+  terminal: String,
+  gate: String
+}, { _id: false });
+
+// Barcode sub-schema
+const barcodeSchema = new Schema({
+  type: {
+    type: String,
+    enum: ['PDF417', 'QR', 'AZTEC', 'OTHER'],
+    required: true
+  },
+  value: {
+    type: String,
+    required: true
+  }
+}, { _id: false });
 
 const flightSchema = new Schema<IFlight>({
   userId: {
@@ -68,67 +94,46 @@ const flightSchema = new Schema<IFlight>({
     index: true
   },
   
+  // Basic flight info
   airline: {
     type: String,
-    required: true,
-    enum: ['Delta', 'American', 'United', 'Southwest', 'Spirit', 'Frontier', 'JetBlue', 'Alaska', 'Hawaiian', 'Other']
+    required: false,
+    default: 'Unknown'
+  },
+  airlineCode: {
+    type: String,
+    enum: ['AA', 'DL', 'UA', 'WN', 'NK', 'F9', 'B6', 'AS', 'HA', 'OTHER']
   },
   airlineLogo: String,
   flightNumber: {
     type: String,
-    required: true
+    required: false,
+    default: 'N/A'
   },
   confirmationCode: {
     type: String,
-    required: true
+    required: false,
+    default: 'MANUAL'
   },
   eticketNumber: String,
   
+  // Route info
   origin: {
-    airportCode: {
-      type: String,
-      required: true,
-      uppercase: true,
-      minlength: 3,
-      maxlength: 3
-    },
-    airportName: String,
-    city: {
-      type: String,
-      required: true
-    },
-    country: {
-      type: String,
-      required: true
-    },
-    terminal: String,
-    gate: String
+    type: airportLocationSchema,
+    required: true
   },
-  
   destination: {
-    airportCode: {
-      type: String,
-      required: true,
-      uppercase: true,
-      minlength: 3,
-      maxlength: 3
-    },
-    airportName: String,
-    city: {
-      type: String,
-      required: true
-    },
-    country: {
-      type: String,
-      required: true
-    },
-    terminal: String,
-    gate: String
+    type: airportLocationSchema,
+    required: true
   },
+  distance: Number, // miles
+  duration: Number, // minutes
   
+  // Time info
   scheduledDepartureTime: {
     type: Date,
-    required: true
+    required: true,
+    index: true
   },
   scheduledArrivalTime: {
     type: Date,
@@ -136,54 +141,79 @@ const flightSchema = new Schema<IFlight>({
   },
   actualDepartureTime: Date,
   actualArrivalTime: Date,
+  boardingTime: Date,
   
-  seatNumber: String,
+  // Boarding details
+  seatNumber: {
+    type: String,
+    required: false,
+    default: 'N/A'
+  },
   boardingGroup: String,
-  
-  distance: Number,
-  duration: Number,
-  points: Number,
-  
-  boardingPassUrl: String,
-  barcode: {
-    type: {
-      type: String,
-      enum: ['QR_CODE', 'PDF417', 'AZTEC', 'DATA_MATRIX']
-    },
-    value: String
+  boardingZone: String,
+  sequenceNumber: String,
+  classOfService: {
+    type: String,
+    enum: ['economy', 'premium-economy', 'business', 'first']
   },
   
+  // Flight stats
+  points: Number,
+  
+  // Documents
+  boardingPassUrl: String,
+  barcode: barcodeSchema,
+  
+  // Status
   status: {
     type: String,
-    enum: ['upcoming', 'completed', 'cancelled', 'delayed'],
-    default: 'upcoming'
-  }
+    enum: ['upcoming', 'completed', 'cancelled', 'delayed', 'in-flight'],
+    default: 'upcoming',
+    required: true,
+    index: true
+  },
+  notes: String
 }, {
   timestamps: true
 });
 
-// Indexes for efficient queries
+// Indexes for common queries
 flightSchema.index({ userId: 1, scheduledDepartureTime: -1 });
 flightSchema.index({ userId: 1, status: 1 });
-flightSchema.index({ confirmationCode: 1, userId: 1 });
+flightSchema.index({ userId: 1, airline: 1 });
+flightSchema.index({ 'origin.airportCode': 1, 'destination.airportCode': 1 });
 
-// Virtual for flight duration in hours
-flightSchema.virtual('durationInHours').get(function() {
-  if (this.duration) {
-    return Math.round(this.duration / 60 * 10) / 10; // Round to 1 decimal
-  }
-  return null;
-});
-
-// Method to calculate points based on distance and class
-flightSchema.methods.calculatePoints = function() {
+// Calculate points based on distance and class
+flightSchema.methods.calculatePoints = function(): number {
   if (!this.distance) return 0;
   
-  // Base points equal to miles traveled
-  // Could add multipliers based on airline status or other factors in the future
-  return Math.round(this.distance);
+  let basePoints = Math.floor(this.distance);
+  
+  // Apply class multipliers
+  switch (this.classOfService) {
+    case 'first':
+      basePoints *= 3;
+      break;
+    case 'business':
+      basePoints *= 2;
+      break;
+    case 'premium-economy':
+      basePoints *= 1.5;
+      break;
+    default:
+      // economy stays at 1x
+  }
+  
+  return Math.floor(basePoints);
 };
 
-const Flight = model<IFlight>('Flight', flightSchema);
+// Pre-save middleware to calculate points
+flightSchema.pre('save', function(next) {
+  if (this.isModified('distance') || this.isModified('classOfService')) {
+    this.points = this.calculatePoints();
+  }
+  next();
+});
 
+export const Flight = model<IFlight>('Flight', flightSchema);
 export default Flight;

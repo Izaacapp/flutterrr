@@ -1,6 +1,6 @@
 import { strictDateExtraction } from "../utils/dateStrict";
 import { safeStrictDateExtraction } from "../utils/dateStrict";
-import postService from '../services/post.service';
+import { postService } from '../services/post.service';
 
 export async function seedTestData() {
   console.log('🌱 Seeding test data...');

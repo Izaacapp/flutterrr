@@ -1,5 +1,5 @@
 import { strictDateExtraction } from "../utils/dateStrict";
-const { findWhere } = require('airport-lookup');
+const airportLookup = require('airport-lookup');
 const tzlookup = require('tz-lookup');
 
 interface FlightTimeData {
@@ -57,7 +57,7 @@ const AIRLINE_TIME_PATTERNS: Record<string, string[]> = {
  * Get airport timezone from IATA code
  */
 export function getAirportTimezone(airportCode: string): string | null {
-  const airport = findWhere({ iata: airportCode.toUpperCase() });
+  const airport = airportLookup(airportCode);
   if (!airport || !airport.latitude || !airport.longitude) {
     return null;
   }
@@ -81,8 +81,8 @@ export function estimateFlightDuration(origin: string, destination: string): num
   }
   
   // Calculate distance-based estimate
-  const originAirport = findWhere({ iata: origin.toUpperCase() });
-  const destAirport = findWhere({ iata: destination.toUpperCase() });
+  const originAirport = airportLookup(origin);
+  const destAirport = airportLookup(destination);
   
   if (!originAirport || !destAirport) {
     return 2.5; // Default fallback

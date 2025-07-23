@@ -79,8 +79,8 @@ export const FlightManualEntry: React.FC<FlightManualEntryProps> = ({ isOpen, on
       if (formData.flightNumber) flightData.flightNumber = formData.flightNumber;
       if (formData.seatNumber) flightData.seatNumber = formData.seatNumber;
 
-      const flight = await flightService.addFlightManually(flightData);
-      onSave(flight);
+      const response = await flightService.createManualFlight(flightData);
+      onSave(response.flight || response);
       onClose();
       // Reset form
       setFormData({
@@ -98,8 +98,9 @@ export const FlightManualEntry: React.FC<FlightManualEntryProps> = ({ isOpen, on
         seatNumber: '',
         status: 'upcoming'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding flight:', error);
+      alert(error.message || 'Failed to add flight. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -129,6 +130,7 @@ export const FlightManualEntry: React.FC<FlightManualEntryProps> = ({ isOpen, on
                 value={formData.airline}
                 onChange={e => setFormData({...formData, airline: e.target.value})}
               >
+                <option value="">Select Airline (optional)</option>
                 <option value="Delta">Delta</option>
                 <option value="American">American</option>
                 <option value="United">United</option>

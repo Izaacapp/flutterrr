@@ -143,6 +143,8 @@ export const manualFlightEntry = async (req: Request, res: Response) => {
   try {
     const userId = req.user?._id;
     const flightData = req.body;
+    
+    console.log('Manual flight entry request:', { userId, flightData });
 
     // Validate required fields - only airports and date are required
     const requiredFields = ['origin', 'destination', 'scheduledDepartureTime'];
@@ -192,7 +194,8 @@ export const manualFlightEntry = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Error adding flight:', error);
-    res.status(500).json({ message: 'Failed to add flight' });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to add flight';
+    res.status(500).json({ message: errorMessage, error: error instanceof Error ? error.stack : error });
   }
 };
 

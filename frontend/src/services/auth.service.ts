@@ -1,7 +1,3 @@
-import { strictDateExtraction } from "../utils/dateStrict";
-import { safeStrictDateExtraction } from "../utils/dateStrict";
-const API_URL = `${import.meta.env.VITE_API_URL}/api/auth`;
-
 export interface User {
   id: string;
   username: string;
@@ -33,283 +29,170 @@ export interface OTPResponse {
   status?: string;
   success?: boolean;
   message: string;
-  email?: string;
+}
+
+export interface AuthError {
+  message: string;
+  code: string;
+  recoverable: boolean;
 }
 
 class AuthService {
   private token: string | null = null;
   private user: User | null = null;
+  private readonly TOKEN_KEY: string;
+  private readonly USER_KEY: string;
+  private baseUrl: string;
 
   constructor() {
-    // Load token from localStorage on init
-    const TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || 'passport_buddy_token';
-    const USER_KEY = import.meta.env.VITE_AUTH_USER_KEY || 'passport_buddy_user';
-    this.token = localStorage.getItem(TOKEN_KEY);
-    const userStr = localStorage.getItem(USER_KEY);
-    if (userStr) {
+    this.TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || 'passport_buddy_token';
+    this.USER_KEY = import.meta.env.VITE_AUTH_USER_KEY || 'passport_buddy_user';
+    this.baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    
+    const storedToken = localStorage.getItem(this.TOKEN_KEY);
+    const storedUser = localStorage.getItem(this.USER_KEY);
+    
+    if (storedToken) {
+      this.token = storedToken;
+    }
+    
+    if (storedUser) {
       try {
-        this.user = JSON.parse(userStr);
-      } catch (e) {
-        console.error('Failed to parse user data');
+        this.user = JSON.parse(storedUser);
+      } catch (error) {
+        console.error('Failed to parse stored user:', error);
+        localStorage.removeItem(this.USER_KEY);
       }
     }
+
+    console.log('🔧 AUTH_SERVICE: Initialized with baseUrl:', this.baseUrl);
   }
 
-  async signup(
-    username: string,
-    email: string,
-    password: string,
-    fullName: string
-  ): Promise<AuthResponse> {
+  private async makeRequest<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.baseUrl}/api/auth${endpoint}`;
+    
     try {
-      const response = await fetch(`${API_URL}/signup`, {
-        method: 'POST',
+      console.log(`🌐 AUTH_REQUEST: ${options.method || 'GET'} ${url}`);
+      
+      const response = await fetch(url, {
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          ...(this.token && { Authorization: `Bearer ${this.token}` }),
+          ...options.headers,
         },
-        credentials: 'include',
-        body: JSON.stringify({ username, email, password, fullName }),
+        ...options,
       });
 
       const data = await response.json();
       
-      // Handle successful signup with token
-      if (data.status === 'success' && data.token && data.data?.user) {
-        console.log('Signup response:', data);
-        console.log('User emailVerified:', data.data.user.emailVerified);
-        this.setAuthData(data.token, data.data.user);
+      if (!response.ok) {
+        throw new Error(data.message || `HTTP ${response.status}`);
       }
-
+      
+      console.log(`✅ AUTH_REQUEST: Success for ${endpoint}`);
       return data;
+
     } catch (error) {
-      console.error('Signup error:', error);
-      return {
-        success: false,
-        message: 'Network error. Please try again.',
-      };
-    }
-  }
-
-  async verifyAccount(otp: string): Promise<AuthResponse> {
-    if (!this.token) {
-      return { success: false, message: 'No authentication token found' };
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/verify-account`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.token}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify({ otp }),
-      });
-
-      const data = await response.json();
-
-      if (data.status === 'success' && data.data?.user) {
-        // Update user data with verified status
-        this.user = data.data.user;
-        const USER_KEY = import.meta.env.VITE_AUTH_USER_KEY || 'passport_buddy_user';
-        localStorage.setItem(USER_KEY, JSON.stringify(data.data.user));
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Verify account error:', error);
-      return {
-        success: false,
-        message: 'Network error. Please try again.',
-      };
-    }
-  }
-
-  async resendOTP(): Promise<OTPResponse> {
-    if (!this.token) {
-      return { success: false, message: 'No authentication token found' };
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/resend-otp`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.token}`,
-        },
-        credentials: 'include',
-      });
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Resend OTP error:', error);
-      return {
-        success: false,
-        message: 'Network error. Please try again.',
-      };
+      console.error(`❌ AUTH_REQUEST: Failed for ${endpoint}:`, error);
+      throw error;
     }
   }
 
   async login(emailOrUsername: string, password: string): Promise<AuthResponse> {
+    const response = await this.makeRequest<AuthResponse>('/login', {
+      method: 'POST',
+      body: JSON.stringify({ emailOrUsername, password }),
+    });
+
+    if (response.token) {
+      this.setToken(response.token);
+    }
+
+    if (response.data?.user || response.user) {
+      this.setUser(response.data?.user || response.user!);
+    }
+
+    return response;
+  }
+
+  async signup(username: string, email: string, password: string, fullName: string): Promise<AuthResponse> {
+    const response = await this.makeRequest<AuthResponse>('/signup', {
+      method: 'POST',
+      body: JSON.stringify({ username, email, password, fullName }),
+    });
+
+    if (response.token) {
+      this.setToken(response.token);
+    }
+
+    if (response.data?.user || response.user) {
+      this.setUser(response.data?.user || response.user!);
+    }
+
+    return response;
+  }
+
+  async verify(): Promise<User | null> {
     try {
-      // Determine if it's an email or username
-      const isEmail = emailOrUsername.includes('@');
-      const body = isEmail 
-        ? { email: emailOrUsername, password }
-        : { username: emailOrUsername, password };
+      const response = await this.makeRequest<{ user: User }>('/verify');
       
-      console.log('Login attempt:', { emailOrUsername, isEmail, body });
-      console.log('API URL:', `${API_URL}/login`);
-        
-      const response = await fetch(`${API_URL}/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(body),
-      });
-
-      const data = await response.json();
-
-      if (data.status === 'success' && data.token) {
-        this.setAuthData(data.token, data.data?.user || data.user);
-        
-        // Check if user needs verification
-        if (data.needsVerification) {
-          return {
-            ...data,
-            success: true,
-          };
-        }
+      if (response.user) {
+        this.setUser(response.user);
+        return response.user;
       }
-
-      return data;
-    } catch (error) {
-      console.error('Login error:', error);
-      return {
-        success: false,
-        message: 'Network error. Please try again.',
-      };
-    }
-  }
-
-  async verify(): Promise<AuthResponse> {
-    if (!this.token) {
-      return { success: false, message: 'No token found' };
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/verify`, {
-        headers: {
-          'Authorization': `Bearer ${this.token}`,
-        },
-        credentials: 'include',
-      });
-
-      const data = await response.json();
-
-      if (data.success && data.user) {
-        this.user = data.user;
-        const USER_KEY = import.meta.env.VITE_AUTH_USER_KEY || 'passport_buddy_user';
-        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-      } else {
-        this.logout();
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Verify error:', error);
-      return {
-        success: false,
-        message: 'Failed to verify token',
-      };
-    }
-  }
-
-  async forgotPassword(email: string): Promise<OTPResponse> {
-    try {
-      const response = await fetch(`${API_URL}/forgot-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error('Forgot password error:', error);
-      return {
-        success: false,
-        message: 'Network error. Please try again.',
-      };
-    }
-  }
-
-  async resetPassword(
-    email: string, 
-    otp: string, 
-    password: string, 
-    passwordConfirm: string
-  ): Promise<AuthResponse> {
-    try {
-      const response = await fetch(`${API_URL}/reset-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ email, otp, password, passwordConfirm }),
-      });
-
-      const data = await response.json();
       
-      if (data.status === 'success' && data.token && data.data?.user) {
-        this.setAuthData(data.token, data.data.user);
-      }
-
-      return data;
+      return null;
     } catch (error) {
-      console.error('Reset password error:', error);
-      return {
-        success: false,
-        message: 'Network error. Please try again.',
-      };
+      this.clearAuth();
+      return null;
     }
+  }
+
+  async verifyAccount(otp: string): Promise<AuthResponse> {
+    const response = await this.makeRequest<AuthResponse>('/verify-account', {
+      method: 'POST',
+      body: JSON.stringify({ otp }),
+    });
+
+    if (response.data?.user || response.user) {
+      this.setUser(response.data?.user || response.user!);
+    }
+
+    return response;
+  }
+
+  async resendOTP(): Promise<OTPResponse> {
+    return await this.makeRequest<OTPResponse>('/resend-otp', {
+      method: 'POST',
+    });
   }
 
   async logout(): Promise<void> {
     try {
-      await fetch(`${API_URL}/logout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      });
+      await this.makeRequest('/logout', { method: 'POST' });
     } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      this.token = null;
-      this.user = null;
-      const TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || 'passport_buddy_token';
-      const USER_KEY = import.meta.env.VITE_AUTH_USER_KEY || 'passport_buddy_user';
-      localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem(USER_KEY);
+      console.warn('Logout request failed:', error);
     }
+    
+    this.clearAuth();
   }
 
-  private setAuthData(token: string, user: User): void {
+  private setToken(token: string): void {
     this.token = token;
+    localStorage.setItem(this.TOKEN_KEY, token);
+  }
+
+  private setUser(user: User): void {
     this.user = user;
-    const TOKEN_KEY = import.meta.env.VITE_AUTH_TOKEN_KEY || 'passport_buddy_token';
-    const USER_KEY = import.meta.env.VITE_AUTH_USER_KEY || 'passport_buddy_user';
-    localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+  }
+
+  private clearAuth(): void {
+    this.token = null;
+    this.user = null;
+    localStorage.removeItem(this.TOKEN_KEY);
+    localStorage.removeItem(this.USER_KEY);
   }
 
   getToken(): string | null {
@@ -324,10 +207,75 @@ class AuthService {
     return !!this.token;
   }
 
-  needsVerification(): boolean {
-    return this.user ? !this.user.emailVerified : false;
+  getBaseUrl(): string {
+    return this.baseUrl;
   }
 
+  async forgotPassword(email: string): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to send reset email');
+      }
+
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token, newPassword }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to reset password');
+      }
+
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async getBackendStatus(): Promise<{healthy: boolean; message?: string}> {
+    try {
+      const response = await fetch(`${this.baseUrl}/health`, {
+        method: 'GET',
+      });
+
+      if (response.ok) {
+        return { healthy: true };
+      } else {
+        return { healthy: false, message: 'Backend is not responding' };
+      }
+    } catch (error) {
+      return { healthy: false, message: 'Cannot connect to backend' };
+    }
+  }
+
+  async refreshBackendHealth(): Promise<void> {
+    // This method is used to refresh the backend health status
+    // It can trigger a health check or clear any cached status
+    await this.getBackendStatus();
+  }
 }
 
 export default new AuthService();

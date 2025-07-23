@@ -1,5 +1,5 @@
-import { strictDateExtraction } from "../utils/dateStrict";
-import { safeStrictDateExtraction } from "../utils/dateStrict";
+// import { strictDateExtraction } from "../utils/dateStrict";
+// import { safeStrictDateExtraction } from "../utils/dateStrict";
 import { correctOcrTime } from '../src/services/timeHandling.service';
 import { validateTime } from '../src/utils/boardingPassValidator';
 

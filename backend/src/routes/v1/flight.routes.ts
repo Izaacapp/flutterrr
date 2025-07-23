@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authenticate } from '../../middleware/auth.middleware';
+import { authenticate } from '../../middleware/auth';
 import multer from 'multer';
 import * as flightController from '../../controllers/flight.controller';
 

@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
+import { createServer } from 'http';
 import app from './app'; // Import the configured app from app.ts
 import { startCleanupJob } from './jobs/cleanupExpiredAccounts';
+import { socketService } from './services/socket.service';
 
 const PORT = process.env.PORT;
 const MONGO_URI = process.env.MONGO_URI;
@@ -22,10 +24,15 @@ const start = async () => {
     // 2. Start cleanup job for expired accounts
     startCleanupJob();
 
-    // 3. Start the Express server listening for requests
-    app.listen(PORT, () => {
+    // 3. Create HTTP server and initialize Socket.io
+    const httpServer = createServer(app);
+    socketService.initialize(httpServer);
+
+    // 4. Start the server listening for requests
+    httpServer.listen(PORT, () => {
       console.log(`🚀 API Server running on port ${PORT}`);
       console.log(`🚀 GraphQL endpoint at http://${process.env.API_HOST}:${PORT}/graphql`);
+      console.log(`🚀 WebSocket server ready for real-time updates`);
     });
 
   } catch (error) {

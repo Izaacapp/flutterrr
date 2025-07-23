@@ -6,6 +6,7 @@ declare global {
     interface Request {
       user?: any;
       uploadedImages?: UploadResult[];
+      uploadedVideos?: UploadResult[];
       uploadedAvatar?: UploadResult;
     }
   }

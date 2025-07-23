@@ -1,5 +1,5 @@
-import { strictDateExtraction } from "../utils/dateStrict";
-import { safeStrictDateExtraction } from "../utils/dateStrict";
+// import { strictDateExtraction } from "../utils/dateStrict";
+// import { safeStrictDateExtraction } from "../utils/dateStrict";
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -19,7 +19,7 @@ function validateFlightDurations(): void {
   const durations: DurationDatabase = JSON.parse(fs.readFileSync(dbPath, 'utf-8'));
   
   let totalRoutes = 0;
-  let errors: string[] = [];
+  const errors: string[] = [];
   
   for (const [category, routes] of Object.entries(durations)) {
     if (category === 'defaults') continue;

@@ -55,6 +55,9 @@ export const Flights: React.FC = () => {
       setFlights([flight, ...flights]);
       showToast('Boarding pass uploaded successfully!', 'success');
       loadStats(); // Reload stats to update points
+      
+      // Emit event for other components to refresh
+      window.dispatchEvent(new CustomEvent('flight-created'));
     } catch (error) {
       console.error('Error uploading boarding pass:', error);
       showToast('Failed to upload boarding pass', 'error');
@@ -75,6 +78,9 @@ export const Flights: React.FC = () => {
       setFlights(flights.map(f => f._id === flightId ? updatedFlight : f));
       showToast('Flight updated successfully', 'success');
       loadStats();
+      
+      // Emit event for other components to refresh
+      window.dispatchEvent(new CustomEvent('flight-updated'));
     } catch (error) {
       console.error('Error updating flight:', error);
       showToast('Failed to update flight', 'error');
@@ -89,6 +95,9 @@ export const Flights: React.FC = () => {
       setFlights(flights.filter(f => f._id !== flightId));
       showToast('Flight deleted successfully', 'success');
       loadStats();
+      
+      // Emit event for other components to refresh
+      window.dispatchEvent(new CustomEvent('flight-deleted'));
     } catch (error) {
       console.error('Error deleting flight:', error);
       showToast('Failed to delete flight', 'error');
@@ -163,19 +172,19 @@ export const Flights: React.FC = () => {
       {stats && (
         <div className="flight-stats">
           <div className="stat-card">
-            <div className="stat-value">{stats.summary.totalFlights}</div>
+            <div className="stat-value">{stats.totalFlights}</div>
             <div className="stat-label">Total Flights</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value">{stats.summary.totalDistance.toLocaleString()}</div>
+            <div className="stat-value">{stats.totalDistance.toLocaleString()}</div>
             <div className="stat-label">Miles Traveled</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value">{stats.summary.totalPoints.toLocaleString()}</div>
+            <div className="stat-value">{(stats.totalPoints || 0).toLocaleString()}</div>
             <div className="stat-label">Points Earned</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value">{stats.summary.uniqueDestinations}</div>
+            <div className="stat-value">{stats.uniqueDestinations || 0}</div>
             <div className="stat-label">Cities Visited</div>
           </div>
         </div>
@@ -247,6 +256,9 @@ export const Flights: React.FC = () => {
             setFlights([flight, ...flights]);
             setShowManualEntry(false);
             loadStats();
+            
+            // Emit event for other components to refresh
+            window.dispatchEvent(new CustomEvent('flight-created'));
           }}
         />
       )}

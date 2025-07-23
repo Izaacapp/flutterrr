@@ -164,5 +164,5 @@ userSchema.methods.comparePassword = async function(password: string): Promise<b
 };
 
 const User = model<IUser>('User', userSchema);
-
+export { User };
 export default User;

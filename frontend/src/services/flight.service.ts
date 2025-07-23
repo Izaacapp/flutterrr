@@ -1,210 +1,127 @@
-import { strictDateExtraction } from "../utils/dateStrict";
-import { safeStrictDateExtraction } from "../utils/dateStrict";
-const API_URL = `${import.meta.env.VITE_API_URL}/api`;
+import { Flight } from '../../../shared/src';
 
-export interface Flight {
-  _id: string;
-  userId: string;
-  airline: string;
-  airlineLogo?: string;
-  flightNumber: string;
-  confirmationCode: string;
-  eticketNumber?: string;
-  origin: {
-    airportCode: string;
-    airportName?: string;
-    city: string;
-    country: string;
-    terminal?: string;
-    gate?: string;
-  };
-  destination: {
-    airportCode: string;
-    airportName?: string;
-    city: string;
-    country: string;
-    terminal?: string;
-    gate?: string;
-  };
-  scheduledDepartureTime: string;
-  scheduledArrivalTime: string;
-  actualDepartureTime?: string;
-  actualArrivalTime?: string;
-  seatNumber?: string;
-  boardingGroup?: string;
-  distance?: number;
-  duration?: number;
-  points?: number;
-  boardingPassUrl?: string;
-  status: 'upcoming' | 'completed' | 'cancelled' | 'delayed';
-  createdAt: string;
-  updatedAt: string;
-}
+export type { Flight };
 
 export interface FlightStats {
-  summary: {
-    totalFlights: number;
-    totalDistance: number;
-    totalPoints: number;
-    uniqueAirlines: number;
-    uniqueDestinations: number;
+  totalFlights: number;
+  totalDistance: number;
+  totalFlightTime: number;
+  uniqueAirports: number;
+  uniqueCountries: number;
+  uniqueAirlines: number;
+  carbonEmissions: number;
+  averageFlightDistance: number;
+  totalPoints?: number;
+  uniqueDestinations?: number;
+  longestFlight?: Flight;
+  shortestFlight?: Flight;
+  mostVisitedAirport?: {
+    code: string;
+    name: string;
+    city: string;
+    country: string;
+    visits: number;
+  };
+  favoriteAirline?: {
+    code: string;
+    name: string;
+    flights: number;
   };
   flightsByMonth: Array<{
-    _id: number;
+    month: string;
     count: number;
-    distance: number;
-    points: number;
-  }>;
-  topRoutes: Array<{
-    _id: {
-      origin: string;
-      destination: string;
-    };
-    count: number;
-    totalDistance: number;
   }>;
 }
 
-class FlightService {
-  private getAuthHeaders() {
-    const token = localStorage.getItem('passport_buddy_token');
-    return {
-      'Authorization': token ? `Bearer ${token}` : '',
-    };
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+async function makeRequest(endpoint: string, options: RequestInit = {}) {
+  const token = localStorage.getItem('passport_buddy_token');
+  const url = `${API_BASE}${endpoint}`;
+  
+  const response = await fetch(url, {
+    credentials: 'include',
+    headers: {
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...options.headers,
+    },
+    ...options,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'Request failed' }));
+    throw new Error(error.message || `HTTP ${response.status}`);
   }
 
+  return response.json();
+}
+
+export class FlightService {
   async uploadBoardingPass(file: File): Promise<Flight> {
     const formData = new FormData();
     formData.append('boardingPass', file);
-
-    const response = await fetch(`${API_URL}/flights/upload-boarding-pass`, {
+    
+    const response = await makeRequest('/api/v1/flights/upload-boarding-pass', {
       method: 'POST',
-      headers: {
-        ...this.getAuthHeaders(),
-      },
-      body: formData
+      body: formData,
+      headers: {}, // Let fetch set Content-Type for FormData
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to upload boarding pass');
-    }
-
-    const data = await response.json();
-    return data.flight;
+    
+    return response.flight;
   }
 
-  async addFlightManually(flightData: Partial<Flight>): Promise<Flight> {
-    const response = await fetch(`${API_URL}/flights/manual-entry`, {
+  async createManualFlight(flightData: any) {
+    return makeRequest('/api/v1/flights/manual-entry', {
       method: 'POST',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(flightData)
+      body: JSON.stringify(flightData),
+      headers: { 'Content-Type': 'application/json' },
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to add flight');
-    }
-
-    const data = await response.json();
-    return data.flight;
   }
 
-  async getMyFlights(params?: {
-    status?: string;
-    airline?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<{
-    flights: Flight[];
-    total: number;
-    hasMore: boolean;
-  }> {
-    const queryParams = new URLSearchParams();
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined) {
-          queryParams.append(key, String(value));
-        }
-      });
-    }
+  async getMyFlights() {
+    return makeRequest('/api/v1/flights/my-flights');
+  }
 
-    const response = await fetch(`${API_URL}/flights/my-flights?${queryParams}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders(),
+  async getFlightById(flightId: string) {
+    return makeRequest(`/api/v1/flights/${flightId}`);
+  }
+
+  async updateFlight(flightId: string, updates: any) {
+    return makeRequest(`/api/v1/flights/${flightId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+      headers: { 'Content-Type': 'application/json' },
     });
+  }
 
-    if (!response.ok) {
-      throw new Error('Failed to get flights');
-    }
-
-    return response.json();
+  async deleteFlight(flightId: string) {
+    return makeRequest(`/api/v1/flights/${flightId}`, { method: 'DELETE' });
   }
 
   async getFlightStats(year?: number): Promise<FlightStats> {
-    const queryParams = new URLSearchParams();
-    if (year) {
-      queryParams.append('year', String(year));
-    }
-
-    const response = await fetch(`${API_URL}/flights/stats?${queryParams}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to get flight stats');
-    }
-
-    return response.json();
+    const endpoint = year ? `/api/v1/flights/stats?year=${year}` : '/api/v1/flights/stats';
+    const response = await makeRequest(endpoint);
+    
+    // Map the backend response structure to our FlightStats interface
+    const summary = response.summary || {};
+    
+    return {
+      totalFlights: summary.totalFlights || 0,
+      totalDistance: summary.totalDistance || 0,
+      totalPoints: summary.totalPoints || 0,
+      uniqueDestinations: summary.uniqueDestinations || 0,
+      uniqueAirlines: summary.uniqueAirlines || 0,
+      totalFlightTime: 0, // Not provided by backend
+      uniqueAirports: summary.uniqueDestinations || 0, // Using destinations as proxy
+      uniqueCountries: summary.uniqueDestinations || 0, // Using destinations as proxy
+      carbonEmissions: 0, // Not provided by backend
+      averageFlightDistance: summary.totalFlights > 0 ? Math.round(summary.totalDistance / summary.totalFlights) : 0,
+      flightsByMonth: response.flightsByMonth || []
+    };
   }
 
-  async updateFlight(flightId: string, updates: Partial<Flight>): Promise<Flight> {
-    const response = await fetch(`${API_URL}/flights/${flightId}`, {
-      method: 'PUT',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updates)
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to update flight');
-    }
-
-    const data = await response.json();
-    return data.flight;
-  }
-
-  async updateFlightStatus(flightId: string, status: Flight['status']): Promise<Flight> {
-    const response = await fetch(`${API_URL}/flights/${flightId}/status`, {
-      method: 'PATCH',
-      headers: {
-        ...this.getAuthHeaders(),
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ status })
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to update flight status');
-    }
-
-    const data = await response.json();
-    return data.flight;
-  }
-
-  async deleteFlight(flightId: string): Promise<void> {
-    const response = await fetch(`${API_URL}/flights/${flightId}`, {
-      method: 'DELETE',
-      headers: this.getAuthHeaders(),
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to delete flight');
-    }
+  getAirlineLogoUrl(airlineCode: string): string {
+    return `https://images.kiwi.com/airlines/64x64/${airlineCode.toUpperCase()}.png`;
   }
 }
 

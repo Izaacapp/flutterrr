@@ -1,14 +1,59 @@
-# Makefile for MERN & Flutter App
-# Run 'make' or 'make help' to see all available commands
+# 🚀 MERN & Flutter - Ultra-Streamlined Development Makefile
+# Military-grade automation for the entire development lifecycle
 
 .PHONY: help
 help: ## Show this help message
-	@echo "MERN & Flutter App - Available Commands:"
-	@echo "========================================"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@echo "$(BLUE)🚀 MERN & Flutter Development Commands$(RESET)"
 	@echo ""
-	@echo "Quick Start: make setup && make dev"
-	@echo "Mobile:      make mobile (auto-detects device)"
+	@echo "$(GREEN)🏗️  Installation & Setup:$(RESET)"
+	@echo "  make install       Install all dependencies across platforms"
+	@echo "  make install-dev   Install with development tools"
+	@echo "  make clean         Clean all build artifacts and node_modules"
+	@echo ""
+	@echo "$(GREEN)🔨 Build & Development:$(RESET)"
+	@echo "  make build         Build all projects (shared, backend, frontend)"
+	@echo "  make dev           Start all development servers in parallel"
+	@echo "  make dev-backend   Start backend development server"
+	@echo "  make dev-frontend  Start frontend development server"
+	@echo ""
+	@echo "$(GREEN)🧪 Testing & Quality:$(RESET)"
+	@echo "  make test          Run all tests across platforms"
+	@echo "  make test-backend  Run backend tests only"
+	@echo "  make test-frontend Run frontend tests only"
+	@echo "  make test-mobile   Run mobile tests only"
+	@echo "  make lint          Lint all code"
+	@echo "  make lint-fix      Auto-fix linting issues"
+	@echo "  make typecheck     Run TypeScript checks"
+	@echo ""
+	@echo "$(GREEN)🚨 Stress Testing & Quality Assurance:$(RESET)"
+	@echo "  make stress        Run comprehensive stress tests"
+	@echo "  make stress-data   Generate stress test data"
+	@echo "  make bootcamp      Full bug bootcamp validation"
+	@echo ""
+	@echo "$(GREEN)🐳 Docker Operations:$(RESET)"
+	@echo "  make docker-build  Build all Docker images"
+	@echo "  make docker-up     Start development environment"
+	@echo "  make docker-down   Stop development environment"
+	@echo "  make docker-logs   Show Docker logs"
+	@echo "  make docker-clean  Clean Docker resources"
+	@echo ""
+	@echo "$(GREEN)🚀 Production:$(RESET)"
+	@echo "  make prod-build    Production build"
+	@echo "  make prod-deploy   Deploy to production"
+	@echo "  make prod-logs     Show production logs"
+
+# Colors for output
+BLUE := \033[34m
+GREEN := \033[32m
+YELLOW := \033[33m
+RED := \033[31m
+RESET := \033[0m
+
+# Project structure
+SHARED_DIR := shared
+BACKEND_DIR := backend
+FRONTEND_DIR := frontend
+MOBILE_DIR := mobile
 
 # Environment setup
 .PHONY: setup
@@ -656,6 +701,169 @@ push-prod: ## Push production images to Docker Hub
 	@docker push timesnotrelative/passport-buddy-backend:latest
 	@docker push timesnotrelative/passport-buddy-frontend:latest
 	@echo "✅ Images pushed to registry"
+
+## 📦 Installation
+install:
+	@echo "$(BLUE)📦 Installing all dependencies...$(RESET)"
+	@echo "$(YELLOW)Installing shared module...$(RESET)"
+	@cd $(SHARED_DIR) && npm install
+	@echo "$(YELLOW)Installing backend dependencies...$(RESET)"
+	@cd $(BACKEND_DIR) && npm install
+	@echo "$(YELLOW)Installing frontend dependencies...$(RESET)"
+	@cd $(FRONTEND_DIR) && npm install
+	@echo "$(YELLOW)Installing mobile dependencies...$(RESET)"
+	@cd $(MOBILE_DIR) && flutter pub get
+	@echo "$(GREEN)✅ All dependencies installed!$(RESET)"
+
+install-dev: install
+	@echo "$(BLUE)🛠️  Installing development tools...$(RESET)"
+	@cd $(BACKEND_DIR) && npm install --include=dev
+	@cd $(FRONTEND_DIR) && npm install --include=dev
+	@echo "$(GREEN)✅ Development tools installed!$(RESET)"
+
+## 🔨 Build
+build: build-shared build-backend build-frontend
+	@echo "$(GREEN)✅ All projects built successfully!$(RESET)"
+
+build-shared:
+	@echo "$(YELLOW)🔨 Building shared module...$(RESET)"
+	@cd $(SHARED_DIR) && npm run build
+
+build-backend: build-shared
+	@echo "$(YELLOW)🔨 Building backend...$(RESET)"
+	@cd $(BACKEND_DIR) && npm run build
+
+build-frontend: build-shared
+	@echo "$(YELLOW)🔨 Building frontend...$(RESET)"
+	@cd $(FRONTEND_DIR) && npm run build
+
+build-mobile:
+	@echo "$(YELLOW)🔨 Building mobile app...$(RESET)"
+	@cd $(MOBILE_DIR) && flutter build apk --debug
+
+## 🚀 Development
+dev:
+	@echo "$(BLUE)🚀 Starting all development servers...$(RESET)"
+	@$(MAKE) -j4 dev-shared dev-backend dev-frontend dev-mobile
+
+dev-shared:
+	@echo "$(YELLOW)🔄 Starting shared module watcher...$(RESET)"
+	@cd $(SHARED_DIR) && npm run build:watch
+
+dev-backend:
+	@echo "$(YELLOW)🔄 Starting backend development server...$(RESET)"
+	@cd $(BACKEND_DIR) && npm run dev
+
+dev-frontend:
+	@echo "$(YELLOW)🔄 Starting frontend development server...$(RESET)"
+	@cd $(FRONTEND_DIR) && npm run dev
+
+dev-mobile:
+	@echo "$(YELLOW)📱 Starting mobile development...$(RESET)"
+	@cd $(MOBILE_DIR) && flutter run
+
+## 🧹 Linting
+lint: lint-backend lint-frontend lint-mobile
+	@echo "$(GREEN)✅ All linting completed!$(RESET)"
+
+lint-backend:
+	@echo "$(YELLOW)🧹 Linting backend...$(RESET)"
+	@cd $(BACKEND_DIR) && npm run lint
+
+lint-frontend:
+	@echo "$(YELLOW)🧹 Linting frontend...$(RESET)"
+	@cd $(FRONTEND_DIR) && npm run lint
+
+lint-mobile:
+	@echo "$(YELLOW)🧹 Linting mobile app...$(RESET)"
+	@cd $(MOBILE_DIR) && flutter analyze
+
+lint-fix:
+	@echo "$(BLUE)🔧 Auto-fixing linting issues...$(RESET)"
+	@cd $(BACKEND_DIR) && npm run lint -- --fix || true
+	@cd $(FRONTEND_DIR) && npm run lint -- --fix || true
+	@echo "$(GREEN)✅ Linting fixes applied!$(RESET)"
+
+## 🔍 Type Checking
+typecheck:
+	@echo "$(BLUE)🔍 Running TypeScript checks...$(RESET)"
+	@cd $(SHARED_DIR) && npm run typecheck
+	@cd $(BACKEND_DIR) && npm run typecheck
+	@cd $(FRONTEND_DIR) && npm run type-check
+	@echo "$(GREEN)✅ Type checking completed!$(RESET)"
+
+## 🚨 Stress Testing
+stress:
+	@echo "$(RED)🚨 Running comprehensive stress tests...$(RESET)"
+	@./scripts/run-full-stress-test.sh
+
+stress-data:
+	@echo "$(YELLOW)📊 Generating stress test data...$(RESET)"
+	@cd $(BACKEND_DIR) && npm run seed:stress
+
+bootcamp:
+	@echo "$(RED)💀 ENTERING BUG BOOTCAMP MODE...$(RESET)"
+	@$(MAKE) clean
+	@$(MAKE) install
+	@$(MAKE) build
+	@$(MAKE) lint
+	@$(MAKE) typecheck
+	@$(MAKE) test
+	@$(MAKE) stress
+	@echo "$(GREEN)🎉 BUG BOOTCAMP COMPLETED SUCCESSFULLY!$(RESET)"
+
+## 🐳 Docker
+docker-build:
+	@echo "$(BLUE)🐳 Building Docker images...$(RESET)"
+	@docker-compose -f config/docker/docker-compose.dev.yml build
+
+docker-up:
+	@echo "$(BLUE)🐳 Starting Docker development environment...$(RESET)"
+	@docker-compose -f config/docker/docker-compose.dev.yml up -d
+
+docker-down:
+	@echo "$(YELLOW)🐳 Stopping Docker environment...$(RESET)"
+	@docker-compose -f config/docker/docker-compose.dev.yml down
+
+docker-logs:
+	@echo "$(BLUE)🐳 Showing Docker logs...$(RESET)"
+	@docker-compose -f config/docker/docker-compose.dev.yml logs -f
+
+docker-clean:
+	@echo "$(RED)🐳 Cleaning Docker resources...$(RESET)"
+	@docker-compose -f config/docker/docker-compose.dev.yml down -v
+	@docker system prune -f
+
+## 🚀 Production
+prod-build:
+	@echo "$(BLUE)🚀 Building for production...$(RESET)"
+	@cd $(SHARED_DIR) && npm run build
+	@cd $(BACKEND_DIR) && npm run build:prod
+	@cd $(FRONTEND_DIR) && npm run build
+	@cd $(MOBILE_DIR) && flutter build apk --release
+
+prod-deploy:
+	@echo "$(BLUE)🚀 Deploying to production...$(RESET)"
+	@docker-compose -f config/docker/docker-compose.prod.yml up -d
+
+## 🧹 Cleanup
+clean:
+	@echo "$(RED)🧹 Cleaning all build artifacts...$(RESET)"
+	@rm -rf $(SHARED_DIR)/dist $(SHARED_DIR)/node_modules
+	@rm -rf $(BACKEND_DIR)/dist $(BACKEND_DIR)/node_modules
+	@rm -rf $(FRONTEND_DIR)/dist $(FRONTEND_DIR)/node_modules
+	@rm -rf $(MOBILE_DIR)/build
+	@echo "$(GREEN)✅ Cleanup completed!$(RESET)"
+
+clean-deep: clean
+	@echo "$(RED)🧹 Deep cleaning (including package-lock files)...$(RESET)"
+	@find . -name "package-lock.json" -type f -delete
+	@find . -name "yarn.lock" -type f -delete
+	@find . -name "pubspec.lock" -type f -delete
+	@echo "$(GREEN)✅ Deep cleanup completed!$(RESET)"
+
+# Legacy commands (keep existing functionality)
+setup: install ## Alias for install
 
 # Default target
 .DEFAULT_GOAL := help

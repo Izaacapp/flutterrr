@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Test</title>
+</head>
+<body>
+    <h1>Testing Frontend Connection</h1>
+    <div id="result"></div>
+    <script>
+        console.log('Testing frontend connection...');
+        
+        fetch('http://localhost:3001')
+            .then(response => response.text())
+            .then(html => {
+                document.getElementById('result').innerHTML = 'Frontend is responding: ' + html.substring(0, 200) + '...';
+                console.log('Frontend HTML:', html.substring(0, 500));
+            })
+            .catch(error => {
+                document.getElementById('result').innerHTML = 'Frontend error: ' + error.message;
+                console.error('Frontend error:', error);
+            });
+            
+        fetch('http://localhost:3000/api/auth/verify')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Backend API Response:', data);
+            })
+            .catch(error => {
+                console.error('Backend API error:', error);
+            });
+    </script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import { strictDateExtraction } from "../utils/dateStrict";
 import { safeStrictDateExtraction } from "../utils/dateStrict";
-import postService from '../services/post.service';
+import { postService } from '../services/post.service';
 import authService from '../services/auth.service';
 
 interface StressTestResults {

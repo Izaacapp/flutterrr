@@ -1,5 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useFlightStats } from '../../hooks/useFlightStats';
+import { TravelStats } from '../common/TravelStats';
 
 interface RightSidebarProps {
   className?: string;
@@ -7,6 +9,7 @@ interface RightSidebarProps {
 
 const RightSidebar: React.FC<RightSidebarProps> = () => {
   const { user } = useAuth();
+  const { stats, loading } = useFlightStats();
 
   // Hide sidebar on smaller screens
   if (typeof window !== 'undefined' && window.innerWidth < 1024) {
@@ -84,53 +87,7 @@ const RightSidebar: React.FC<RightSidebarProps> = () => {
         }}>
           Your Travel Stats
         </h4>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '1.25rem', 
-              fontWeight: 'bold', 
-              color: 'var(--pb-dark-purple)' 
-            }}>
-              {user?.countriesVisited?.length || 0}
-            </div>
-            <div style={{ 
-              fontSize: '0.75rem', 
-              color: 'var(--pb-medium-purple)' 
-            }}>
-              Countries
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '1.25rem', 
-              fontWeight: 'bold', 
-              color: 'var(--pb-dark-purple)' 
-            }}>
-              12
-            </div>
-            <div style={{ 
-              fontSize: '0.75rem', 
-              color: 'var(--pb-medium-purple)' 
-            }}>
-              Flights
-            </div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ 
-              fontSize: '1.25rem', 
-              fontWeight: 'bold', 
-              color: 'var(--pb-dark-purple)' 
-            }}>
-              {user?.milesFlown ? Math.floor(user.milesFlown / 1000) + 'k' : '0'}
-            </div>
-            <div style={{ 
-              fontSize: '0.75rem', 
-              color: 'var(--pb-medium-purple)' 
-            }}>
-              Miles
-            </div>
-          </div>
-        </div>
+        <TravelStats stats={stats} loading={loading} compact={true} />
       </div>
 
       {/* Location Search Section */}

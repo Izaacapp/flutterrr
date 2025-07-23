@@ -107,6 +107,59 @@ export default {
         console.error('Error fetching current user:', err);
         throw err;
       }
+    },
+    verifyAuth: async (_: any, __: any, context: any) => {
+      try {
+        console.log('🔐 GRAPHQL_VERIFY: Request received');
+        console.log('🔐 Context userId:', context.userId);
+        
+        if (!context.userId) {
+          console.log('❌ GRAPHQL_VERIFY: No user ID in context');
+          return {
+            valid: false,
+            message: 'No authentication token provided',
+            user: null
+          };
+        }
+        
+        const user = await User.findById(context.userId).select('-password').lean();
+        
+        if (!user) {
+          console.log('❌ GRAPHQL_VERIFY: User not found in database');
+          return {
+            valid: false,
+            message: 'User not found',
+            user: null
+          };
+        }
+
+        console.log('✅ GRAPHQL_VERIFY: Authentication successful for:', user.username);
+        
+        return {
+          valid: true,
+          message: 'Authentication successful',
+          user: {
+            _id: user._id.toString(),
+            username: user.username,
+            fullName: user.fullName,
+            avatar: user.avatar,
+            bio: user.bio,
+            location: user.location,
+            homeAirport: user.homeAirport,
+            passportCountry: user.passportCountry,
+            milesFlown: user.milesFlown,
+            countriesVisited: user.countriesVisited || [],
+            emailVerified: user.emailVerified
+          }
+        };
+      } catch (err) {
+        console.error('❌ GRAPHQL_VERIFY: Error:', err);
+        return {
+          valid: false,
+          message: 'Authentication verification failed',
+          user: null
+        };
+      }
     }
   },
   RootMutation: {

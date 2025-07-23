@@ -1,12 +1,31 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './PostCard.css';
 import { postService } from '../../services/post.service';
+import { bookmarkService } from '../../services/bookmark.service';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { VideoPlayer } from '../video/VideoPlayer';
 
 interface PostImage {
   url: string;
   key: string;
+}
+
+interface PostVideo {
+  url: string;
+  key: string;
+  duration?: number;
+  thumbnail?: string;
+  aspectRatio?: number;
+  hasAudio?: boolean;
+  views?: number;
+}
+
+interface PostLocation {
+  name: string;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 interface PostAuthor {
@@ -28,6 +47,8 @@ interface PostProps {
     _id: string;
     content: string;
     images?: PostImage[];
+    videos?: PostVideo[];
+    location?: PostLocation;
     createdAt: string;
     author?: PostAuthor;
     likes: string[];
@@ -40,7 +61,7 @@ interface PostProps {
   onPostDeleted?: (postId: string) => void;
 }
 
-export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, onCommentDeleted, onPostDeleted }: PostProps) {
+function PostCardComponent({ post, currentUserId, onToggleLike, onCommentAdded, onCommentDeleted, onPostDeleted }: PostProps) {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [commentText, setCommentText] = useState('');
@@ -55,16 +76,37 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
   const dropdownRef = useRef<HTMLDivElement>(null);
   const postDropdownRef = useRef<HTMLDivElement>(null);
   const hasImages = post.images && post.images.length > 0;
+  const hasVideos = post.videos && post.videos.length > 0;
+  const hasMedia = hasImages || hasVideos;
   const hasMultipleImages = post.images && post.images.length > 1;
   const [localIsLiked, setLocalIsLiked] = useState(currentUserId ? post.likes.includes(currentUserId) : false);
   const [localLikesCount, setLocalLikesCount] = useState(post.likes.length);
   const [isLiking, setIsLiking] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isBookmarking, setIsBookmarking] = useState(false);
 
   // Sync with props when they change (e.g., from polling)
   useEffect(() => {
     setLocalIsLiked(currentUserId ? post.likes.includes(currentUserId) : false);
     setLocalLikesCount(post.likes.length);
   }, [post.likes, currentUserId]);
+
+  // Check bookmark status on mount
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (currentUserId && post._id) {
+        try {
+          const bookmarked = await bookmarkService.isBookmarked(post._id);
+          setIsBookmarked(bookmarked);
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.error('Failed to check bookmark status:', error);
+          }
+        }
+      }
+    };
+    checkBookmarkStatus();
+  }, [post._id, currentUserId]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -83,32 +125,22 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
     };
   }, []);
 
-  const getAvatarColor = (avatarUrl?: string): string => {
-    if (!avatarUrl) return '#8b5cf6';
-    
-    const backgroundMatch = avatarUrl.match(/background=([a-fA-F0-9]{6})/);
-    if (backgroundMatch?.[1]) {
-      return `#${backgroundMatch[1]}`;
-    }
-    
-    return '#8b5cf6';
-  };
 
-  const handlePrevImage = () => {
+  const handlePrevImage = useCallback(() => {
     if (post.images) {
       setCurrentImageIndex((prev) => 
         prev === 0 ? post.images!.length - 1 : prev - 1
       );
     }
-  };
+  }, [post.images]);
 
-  const handleNextImage = () => {
+  const handleNextImage = useCallback(() => {
     if (post.images) {
       setCurrentImageIndex((prev) => 
         prev === post.images!.length - 1 ? 0 : prev + 1
       );
     }
-  };
+  }, [post.images]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -122,24 +154,24 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
     return date.toLocaleDateString();
   };
 
-  const handleLikeClick = async () => {
+  const handleLikeClick = useCallback(async () => {
     if (isLiking || !onToggleLike || !currentUserId) return;
     
     // Instantly update UI
-    setLocalIsLiked(!localIsLiked);
-    setLocalLikesCount(localIsLiked ? localLikesCount - 1 : localLikesCount + 1);
+    setLocalIsLiked(prev => !prev);
+    setLocalLikesCount(prev => localIsLiked ? prev - 1 : prev + 1);
     setIsLiking(true);
     
     try {
       await onToggleLike(post._id);
     } catch (error) {
       // Revert on error
-      setLocalIsLiked(localIsLiked);
-      setLocalLikesCount(localLikesCount);
+      setLocalIsLiked(prev => !prev);
+      setLocalLikesCount(prev => localIsLiked ? prev + 1 : prev - 1);
     } finally {
       setIsLiking(false);
     }
-  };
+  }, [isLiking, onToggleLike, currentUserId, post._id, localIsLiked]);
 
   const handleDoubleTap = () => {
     const now = Date.now();
@@ -167,7 +199,9 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
         setShowComments(true);
       }
     } catch (error) {
-      console.error('Failed to add comment:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to add comment:', error);
+      }
     } finally {
       setIsSubmittingComment(false);
     }
@@ -182,11 +216,13 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
         onCommentDeleted(post._id, commentId);
       }
     } catch (error) {
-      console.error('Failed to delete comment:', error);
+      if (import.meta.env.DEV) {
+        console.error('Failed to delete comment:', error);
+      }
     }
   };
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     const postUrl = `${window.location.origin}/post/${post._id}`;
     
     if (navigator.share) {
@@ -198,7 +234,9 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
         });
       } catch (error) {
         if ((error as Error).name !== 'AbortError') {
-          console.error('Error sharing:', error);
+          if (import.meta.env.DEV) {
+            console.error('Error sharing:', error);
+          }
         }
       }
     } else {
@@ -207,15 +245,17 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
         setShowCopiedMessage(true);
         setTimeout(() => setShowCopiedMessage(false), 2000);
       } catch (error) {
-        console.error('Failed to copy link:', error);
+        if (import.meta.env.DEV) {
+          console.error('Failed to copy link:', error);
+        }
       }
     }
-  };
+  }, [post._id, post.author?.username, post.content]);
 
-  const handleDeletePost = async () => {
+  const handleDeletePost = useCallback(async () => {
     setShowDeleteConfirm(true);
     setShowPostMenu(false);
-  };
+  }, []);
 
   const handleConfirmDelete = () => {
     if (onPostDeleted) {
@@ -224,20 +264,67 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
     setShowDeleteConfirm(false);
   };
 
+  const handleBookmarkClick = async () => {
+    if (!currentUserId) {
+      navigate('/auth');
+      return;
+    }
+    
+    if (isBookmarking) return;
+    
+    setIsBookmarking(true);
+    setIsBookmarked(!isBookmarked);
+    
+    try {
+      await bookmarkService.toggleBookmark(post._id);
+    } catch (error) {
+      // Revert on error
+      setIsBookmarked(isBookmarked);
+      if (import.meta.env.DEV) {
+        console.error('Failed to toggle bookmark:', error);
+      }
+    } finally {
+      setIsBookmarking(false);
+    }
+  };
+
   return (
     <article className="post-card">
       {/* Header */}
       <header className="post-header">
         <div className="post-author">
-          <div className="author-avatar">
+          <div 
+            style={{
+              width: '32px',
+              height: '32px'
+            }}
+          >
             {post.author?.avatar ? (
               <img 
                 src={post.author.avatar} 
                 alt={`${post.author.username}'s avatar`}
-                className="avatar-image"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  objectFit: 'cover'
+                }}
               />
             ) : (
-              <div className="avatar-placeholder" style={{ backgroundColor: getAvatarColor(post.author?.avatar) }}>
+              <div 
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: '14px',
+                  backgroundColor: 'var(--pb-medium-purple)'
+                }}
+              >
                 {(() => {
                   const fullName = post.author?.fullName || post.author?.username || 'User';
                   const names = fullName.split(' ');
@@ -257,7 +344,33 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
             >
               {post.author?.username || 'anonymous'}
             </h3>
-            <time className="post-time">{formatTimeAgo(post.createdAt)}</time>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <time className="post-time">{formatTimeAgo(post.createdAt)}</time>
+              {post.location && (
+                <span style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '3px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#6b7280',
+                  fontSize: '11px',
+                  padding: '3px 10px',
+                  borderRadius: '14px',
+                  marginLeft: '8px',
+                  fontWeight: '500'
+                }}>
+                  <svg 
+                    width="10" 
+                    height="10" 
+                    viewBox="0 0 24 24" 
+                    fill="currentColor"
+                  >
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                  </svg>
+                  <span>{post.location.name}</span>
+                </span>
+              )}
+            </div>
           </div>
         </div>
         {currentUserId && post.author?._id === currentUserId && (
@@ -294,15 +407,28 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
         </div>
       )}
 
-      {/* Images */}
-      {hasImages && (
+      {/* Media (Images & Videos) */}
+      {hasMedia && (
         <div className="post-media">
-          <div className="image-container" onClick={handleDoubleTap}>
-            <img 
-              src={post.images![currentImageIndex].url} 
-              alt={`Post image ${currentImageIndex + 1}`}
-              className="post-image"
-            />
+          <div className="image-container" onClick={hasVideos ? undefined : handleDoubleTap}>
+            {hasVideos ? (
+              <VideoPlayer
+                src={post.videos![0].url}
+                thumbnail={post.videos![0].thumbnail}
+                postId={post._id}
+                autoplay={false}
+                loop={true}
+                muted={true}
+                aspectRatio={post.videos![0].aspectRatio || 16/9}
+                className="post-video"
+              />
+            ) : hasImages ? (
+              <img 
+                src={post.images![currentImageIndex].url} 
+                alt={`Post image ${currentImageIndex + 1}`}
+                className="post-image"
+              />
+            ) : null}
             {showLikeAnimation && (
               <div className="like-animation">
                 <svg viewBox="0 0 24 24" fill="#8b5cf6">
@@ -385,10 +511,18 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
             <div className="copied-message">Link copied!</div>
           )}
         </div>
-        <button className="action-button" aria-label="Save">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <button 
+          className="action-button" 
+          aria-label="Save"
+          onClick={handleBookmarkClick}
+          disabled={isBookmarking}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill={isBookmarked ? "var(--pb-medium-purple)" : "none"}>
             <path d="M19 21L12 16L5 21V5C5 4.46957 5.21071 3.96086 5.58579 3.58579C5.96086 3.21071 6.46957 3 7 3H17C17.5304 3 18.0391 3.21071 18.4142 3.58579C18.7893 3.96086 19 4.46957 19 5V21Z" 
-              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              stroke={isBookmarked ? "var(--pb-medium-purple)" : "currentColor"} 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"/>
           </svg>
         </button>
       </div>
@@ -496,3 +630,16 @@ export function PostCard({ post, currentUserId, onToggleLike, onCommentAdded, on
     </article>
   );
 }
+
+// Memoize the component to prevent unnecessary re-renders
+export const PostCard = memo(PostCardComponent, (prevProps, nextProps) => {
+  // Custom comparison - only re-render if these props change
+  return (
+    prevProps.post._id === nextProps.post._id &&
+    prevProps.post.likes.length === nextProps.post.likes.length &&
+    prevProps.post.content === nextProps.post.content &&
+    prevProps.post.comments.length === nextProps.post.comments.length &&
+    prevProps.currentUserId === nextProps.currentUserId &&
+    prevProps.post.author?._id === nextProps.post.author?._id
+  );
+});

@@ -52,7 +52,20 @@ const createSendToken = (user: IUser, statusCode: number, res: Response, message
     message,
     token,
     data: {
-      user,
+      user: {
+        id: (user as any)._id.toString(),
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        avatar: user.avatar,
+        bio: user.bio,
+        location: user.location,
+        homeAirport: user.homeAirport,
+        passportCountry: user.passportCountry,
+        milesFlown: user.milesFlown,
+        countriesVisited: user.countriesVisited,
+        emailVerified: user.emailVerified
+      },
     },
   });
 };
@@ -289,7 +302,20 @@ router.post('/login', catchAsync(async (req: Request, res: Response, next: NextF
       needsVerification: true, // Flag for frontend to redirect to OTP screen
       token,
       data: {
-        user,
+        user: {
+          id: (user as any)._id.toString(),
+          username: user.username,
+          email: user.email,
+          fullName: user.fullName,
+          avatar: user.avatar,
+          bio: user.bio,
+          location: user.location,
+          homeAirport: user.homeAirport,
+          passportCountry: user.passportCountry,
+          milesFlown: user.milesFlown,
+          countriesVisited: user.countriesVisited,
+          emailVerified: user.emailVerified
+        },
       },
     });
   }
@@ -443,31 +469,76 @@ router.get('/check-auth', authenticate, catchAsync(async (req: AuthRequest, res:
   });
 }));
 
-// Verify token endpoint (kept for backward compatibility)
-router.get('/verify', authenticate, catchAsync(async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const user = await User.findById(req.userId).select('-password');
-
-  if (!user) {
-    return next(new AppError('User not found', 404));
-  }
-
-  res.json({
-    success: true,
-    user: {
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      fullName: user.fullName,
-      avatar: user.avatar,
-      bio: user.bio,
-      location: user.location,
-      homeAirport: user.homeAirport,
-      passportCountry: user.passportCountry,
-      milesFlown: user.milesFlown,
-      countriesVisited: user.countriesVisited,
-      emailVerified: user.emailVerified
+// Unified auth verification endpoint for React + Flutter
+router.get('/verify', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log('🔐 AUTH_VERIFY: Request received');
+    console.log('🔐 Headers:', req.headers.authorization);
+    
+    // Extract token from Authorization header (Flutter + React)
+    let token = req.headers.authorization?.split(' ')[1];
+    
+    // Fallback to cookie for web compatibility
+    if (!token && req.cookies?.token) {
+      token = req.cookies.token;
+      console.log('🔐 AUTH_VERIFY: Using cookie token');
     }
-  });
-}));
+
+    if (!token) {
+      console.log('❌ AUTH_VERIFY: No token provided');
+      return res.status(401).json({
+        valid: false,
+        message: 'No authentication token provided'
+      });
+    }
+
+    // Verify JWT token
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    console.log('🔐 AUTH_VERIFY: Token decoded for user:', decoded.userId);
+
+    // Get user from database
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      console.log('❌ AUTH_VERIFY: User not found in database');
+      return res.status(401).json({
+        valid: false,
+        message: 'User not found'
+      });
+    }
+
+    console.log('✅ AUTH_VERIFY: Authentication successful for:', user.username);
+
+    // Unified response format for React + Flutter
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).json({
+      valid: true,
+      success: true, // Backward compatibility
+      user: {
+        id: user._id.toString(),
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        avatar: user.avatar,
+        bio: user.bio,
+        location: user.location,
+        homeAirport: user.homeAirport,
+        passportCountry: user.passportCountry,
+        milesFlown: user.milesFlown,
+        countriesVisited: user.countriesVisited,
+        emailVerified: user.emailVerified
+      }
+    });
+
+  } catch (error) {
+    console.log('❌ AUTH_VERIFY: JWT verification failed:', (error as Error).message);
+    
+    res.status(401).json({
+      valid: false,
+      message: 'Invalid or expired token',
+      error: process.env.NODE_ENV === 'development' ? (error as Error).message : undefined
+    });
+  }
+});
 
 export default router;

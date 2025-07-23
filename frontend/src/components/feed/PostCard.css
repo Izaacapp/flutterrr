@@ -51,6 +51,7 @@
   color: white;
   font-weight: 600;
   font-size: 14px;
+  background-color: var(--pb-medium-purple);
 }
 
 .author-info {
@@ -63,6 +64,12 @@
   font-size: 14px;
   color: #262626;
   margin: 0;
+  transition: color 0.2s ease;
+}
+
+.author-username:hover {
+  color: #0095f6;
+  text-decoration: underline;
 }
 
 .post-time {
@@ -190,6 +197,19 @@
   height: auto;
   max-height: 614px;
   object-fit: contain;
+}
+
+.post-video {
+  width: 100%;
+  height: auto;
+  max-height: 500px;
+  border-radius: 8px;
+  background-color: #000;
+}
+
+.post-video:focus {
+  outline: 2px solid var(--pb-medium-purple);
+  outline-offset: 2px;
 }
 
 /* Image Navigation */
@@ -438,6 +458,12 @@
   font-weight: 600;
   font-size: 14px;
   color: var(--pb-primary);
+  transition: color 0.2s ease;
+}
+
+.comment-username:hover {
+  color: #0095f6;
+  text-decoration: underline;
 }
 
 .comment-time {

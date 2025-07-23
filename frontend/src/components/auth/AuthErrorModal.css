@@ -1,0 +1,383 @@
+.auth-error-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.auth-error-modal {
+  background: white;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: modalSlideUp 0.3s ease-out;
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.auth-error-modal-header {
+  padding: 24px 24px 0;
+  text-align: center;
+  position: relative;
+}
+
+.auth-error-icon {
+  font-size: 4rem;
+  margin-bottom: 16px;
+  animation: pulse 2s infinite;
+}
+
+.auth-error-title {
+  color: #1f2937;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.auth-error-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.auth-error-close:hover {
+  background-color: #f3f4f6;
+}
+
+.auth-error-modal-body {
+  padding: 24px;
+}
+
+.auth-error-message {
+  color: #ef4444;
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 16px 0;
+  text-align: center;
+}
+
+.auth-error-help {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin: 0 0 24px 0;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.offline-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fef3c7;
+  color: #d97706;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid #fbbf24;
+}
+
+.offline-icon {
+  font-size: 1.25rem;
+}
+
+.auth-error-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.auth-modal-retry,
+.auth-modal-secondary,
+.auth-modal-login {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.auth-modal-retry {
+  background: #8b5cf6;
+  color: white;
+}
+
+.auth-modal-retry:hover:not(:disabled) {
+  background: #7c3aed;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.auth-modal-retry:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.auth-modal-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.auth-modal-secondary:hover {
+  background: #e5e7eb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.auth-modal-login {
+  background: #10b981;
+  color: white;
+}
+
+.auth-modal-login:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.auth-error-advanced {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 24px;
+}
+
+.show-advanced-btn {
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.2s;
+}
+
+.show-advanced-btn:hover {
+  color: #374151;
+}
+
+.advanced-content {
+  margin-top: 16px;
+}
+
+.backend-status,
+.connection-info {
+  margin-bottom: 24px;
+}
+
+.backend-status h4,
+.connection-info h4 {
+  color: #374151;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.refresh-status-btn {
+  background: none;
+  border: 1px solid #d1d5db;
+  color: #6b7280;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.refresh-status-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.status-item.healthy {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.status-item.unhealthy {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.status-endpoint {
+  flex: 1;
+  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+  font-size: 0.7rem;
+}
+
+.status-latency {
+  color: #059669;
+  font-weight: 500;
+}
+
+.status-error {
+  color: #dc2626;
+  font-size: 0.7rem;
+}
+
+.status-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.info-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.75rem;
+}
+
+.info-label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.info-value {
+  color: #374151;
+  font-weight: 600;
+}
+
+.info-value.online {
+  color: #059669;
+}
+
+.info-value.offline {
+  color: #dc2626;
+}
+
+.info-value.code {
+  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', monospace;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.auth-error-modal-footer {
+  padding: 0 24px 24px;
+  text-align: center;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 24px;
+}
+
+.auth-error-modal-footer p {
+  color: #6b7280;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+.support-link {
+  color: #8b5cf6;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.support-link:hover {
+  color: #7c3aed;
+  text-decoration: underline;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+  .auth-error-modal {
+    width: 95vw;
+    margin: 10px;
+  }
+  
+  .auth-error-actions {
+    flex-direction: column;
+  }
+  
+  .auth-modal-retry,
+  .auth-modal-secondary,
+  .auth-modal-login {
+    width: 100%;
+  }
+}

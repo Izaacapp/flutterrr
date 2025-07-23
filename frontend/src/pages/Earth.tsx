@@ -132,8 +132,10 @@ export const Earth: React.FC = () => {
     // Load user flights
     const loadFlights = async () => {
       try {
-        const response = await flightService.getMyFlights({ status: 'completed', limit: 50 });
-        setFlights(response.flights);
+        const response = await flightService.getMyFlights();
+        // Filter for completed flights on the frontend
+        const completedFlights = response.flights.filter((f: Flight) => f.status === 'completed');
+        setFlights(completedFlights);
       } catch (error) {
         console.error('Error loading flights:', error);
       } finally {

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Express } from 'express';
 import 'dotenv/config';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -12,6 +12,7 @@ import userRoutes from './routes/v1/user.routes';
 import healthRoutes from './routes/health';
 import flightRoutes from './routes/v1/flight.routes';
 import humanVerifyRoutes from './routes/v1/humanVerify.routes';
+import notificationRoutes from './routes/v1/notification.routes';
 import { env } from './config/env';
 import errorHandler from './middleware/errorHandler';
 import { validationRouter } from './services/boardingPassValidation.service';
@@ -45,7 +46,7 @@ const apolloServer = new ApolloServer({
     if (token) {
       try {
         const jwt = require('jsonwebtoken');
-        const JWT_SECRET = process.env.JWT_SECRET!;
+        const JWT_SECRET = process.env.JWT_SECRET as string;
         const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
         
         // Import User model
@@ -66,7 +67,7 @@ const apolloServer = new ApolloServer({
 
 // We must start Apollo before applying it as middleware
 apolloServer.start().then(() => {
-  apolloServer.applyMiddleware({ app: app as any, path: '/graphql' });
+  apolloServer.applyMiddleware({ app: app as Express, path: '/graphql' });
 });
 
 // --- Route Setup ---
@@ -79,7 +80,10 @@ app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api/flights', flightRoutes);
+app.use('/api/v1/flights', flightRoutes);
+app.use('/api/v1/posts', postRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/boarding-pass', validationRouter);
 app.use('/api/human-verify', humanVerifyRoutes);
 
