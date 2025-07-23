@@ -14,8 +14,7 @@ Passport Buddy is a comprehensive travel management platform that combines socia
 
 ### System Design
 
-![Passport Buddy System Architecture](Passport-buddy.svg)
-
+![Passport Buddy System Architecture](https://raw.githubusercontent.com/Izaacapp/flutterrr/main/passport-buddy.svg)
 ### Technology Stack
 
 | Layer | Technologies |
